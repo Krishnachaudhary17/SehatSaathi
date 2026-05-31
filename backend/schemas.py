@@ -69,6 +69,7 @@ class ChatResponse(BaseModel):
 # ─────────────────────────────────────────────
 class MessageCreate(BaseModel):
     content: str
+    message_type: Optional[str] = "text"  # text / prescription
 
 class MessageOut(BaseModel):
     id: int
@@ -76,6 +77,7 @@ class MessageOut(BaseModel):
     sender_id: UUID
     sender_name: str
     sender_role: str
+    message_type: str
     content: str
     sent_at: datetime
 
@@ -103,6 +105,18 @@ class DoctorOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class DoctorUpdate(BaseModel):
+    specialty: Optional[str] = None
+    fee: Optional[int] = None
+    bio: Optional[str] = None
+    phone: Optional[str] = None
+    location: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    experience_years: Optional[int] = None
+    available: Optional[bool] = None
+
+
 # ─────────────────────────────────────────────
 #  APPOINTMENTS
 # ─────────────────────────────────────────────
@@ -119,7 +133,9 @@ class AppointmentCreate(BaseModel):
 
 class AppointmentOut(BaseModel):
     id: UUID
-    doctor_id: Optional[UUID]
+    user_id: Optional[UUID] = None
+    doctor_id: Optional[UUID] = None
+    patient_name: Optional[str] = None   # populated by doctor schedule endpoint
     doctor_name: str
     specialty: str
     hospital: str

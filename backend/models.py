@@ -124,6 +124,7 @@ class Message(Base):
     )
     sender_name: Mapped[str] = mapped_column(String(100))
     sender_role: Mapped[str] = mapped_column(String(20))   # "patient" or "doctor"
+    message_type: Mapped[str] = mapped_column(String(20), default="text")  # text / prescription
     content: Mapped[str] = mapped_column(Text)
     sent_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

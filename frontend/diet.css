@@ -1,0 +1,79 @@
+:root{--g:#007f66;--gh:#006652;--bg:#f8fafc;--dark:#1e293b;--muted:#64748b;--red:#ff4d4f}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif}
+body{display:flex;height:100vh;background:var(--bg);color:var(--dark)}
+.sidebar{width:260px;background:var(--g);color:#fff;display:flex;flex-direction:column;padding:24px;flex-shrink:0;overflow-y:auto;overflow-x:hidden}
+.brand{display:flex;align-items:center;gap:10px;white-space:nowrap;text-decoration:none;color:inherit}
+.logo-icon img{width:40px;height:40px;border:2px solid #fff;border-radius:4px;display:block}
+.brand h2{font-size:18px;margin:0}
+.nav-menu{display:flex;flex-direction:column;gap:4px;flex:1;margin-top:24px}
+.nav-item{color:rgba(255,255,255,0.8);text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:500;transition:.2s}
+.nav-item:hover,.nav-item.active{background:rgba(255,255,255,0.15);color:#fff}
+.btn-nav-ai{margin-top:16px;background:linear-gradient(135deg,#6366f1,#a855f7);color:#fff;border:none;padding:12px 16px;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:8px;width:100%;transition:.2s}
+.btn-emergency{background:var(--red);color:#fff;border:none;padding:14px;border-radius:8px;font-weight:700;cursor:pointer;margin-bottom:12px;width:100%}
+.user-profile{display:flex;align-items:center;gap:12px}
+.main-content{flex:1;padding:40px;overflow-y:auto}
+.page-header{background:linear-gradient(135deg,#065f46,#0d9488);padding:32px 40px;border-radius:20px;color:#fff;margin-bottom:32px;box-shadow:0 10px 30px rgba(13,148,136,.2)}
+.page-header h1{font-size:2rem;margin-bottom:8px}
+.page-header p{opacity:.85;font-size:15px}
+.input-card{background:#fff;border-radius:16px;padding:28px;border:1px solid #e2e8f0;margin-bottom:24px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.input-card h2{font-size:16px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group label{font-size:13px;font-weight:600;color:var(--muted)}
+.form-group input,.form-group select,.form-group textarea{padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:inherit;color:var(--dark);outline:none;transition:.2s;background:#fff}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#0d9488}
+.form-group textarea{resize:vertical;min-height:90px}
+.btn-row{display:flex;gap:12px;margin-top:4px}
+.btn-generate{background:#0d9488;color:#fff;border:none;border-radius:10px;padding:13px 28px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;transition:.2s}
+.btn-generate:hover{background:#0b7a70;transform:translateY(-1px)}
+.btn-generate:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.btn-from-report{background:#f3e8ff;color:#7c3aed;border:1px solid #c4b5fd;border-radius:10px;padding:13px 20px;font-size:14px;font-weight:600;cursor:pointer;transition:.2s}
+.btn-from-report:hover{background:#ede9fe}
+.loading-bar{display:none;align-items:center;gap:12px;padding:16px 20px;background:#f0fdf9;border:1px solid #99f6e4;border-radius:12px;margin-bottom:20px;font-size:14px;color:#0d9488;font-weight:600}
+.spinner{width:20px;height:20px;border:3px solid #e2e8f0;border-top-color:#0d9488;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.results-section{display:none}
+.results-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.results-header h2{font-size:20px;font-weight:800}
+.btn-download{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;color:var(--dark);transition:.2s}
+.btn-download:hover{background:#e2e8f0}
+.diet-summary{background:linear-gradient(135deg,#0f766e,#0d9488);color:#fff;border-radius:16px;padding:24px 28px;margin-bottom:24px}
+.diet-summary h3{font-size:18px;font-weight:700;margin-bottom:8px}
+.diet-summary p{opacity:.88;font-size:14px;line-height:1.7}
+.tag-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.diet-tag{background:rgba(255,255,255,.2);border-radius:20px;padding:5px 14px;font-size:12px;font-weight:600}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.food-card{background:#fff;border-radius:14px;padding:20px;border:1px solid #e2e8f0}
+.food-card.avoid{border-left:4px solid #ef4444}
+.food-card.include{border-left:4px solid #22c55e}
+.food-card h4{font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.food-card ul{list-style:none;display:flex;flex-direction:column;gap:7px}
+.food-card li{font-size:13px;color:var(--muted);display:flex;align-items:flex-start;gap:8px;line-height:1.5}
+.food-card li::before{flex-shrink:0;margin-top:1px}
+.avoid li::before{content:"✗";color:#ef4444;font-weight:700}
+.include li::before{content:"✓";color:#22c55e;font-weight:700}
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-bottom:24px}
+.day-card{background:#fff;border-radius:14px;border:1px solid #e2e8f0;overflow:hidden;transition:.2s;cursor:pointer}
+.day-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);transform:translateY(-2px)}
+.day-card.active{border-color:#0d9488;box-shadow:0 0 0 2px #0d9488}
+.day-header{background:#f0fdf9;padding:12px;text-align:center;border-bottom:1px solid #e2e8f0}
+.day-header .day-name{font-size:13px;font-weight:700;color:#0d9488}
+.day-header .day-cals{font-size:11px;color:var(--muted);margin-top:2px}
+.day-meals{padding:10px 12px;display:flex;flex-direction:column;gap:5px}
+.meal-chip{font-size:11px;background:#f8fafc;border-radius:6px;padding:4px 8px;color:var(--dark);line-height:1.4}
+.day-detail{background:#fff;border-radius:16px;border:1px solid #e2e8f0;padding:24px;margin-bottom:24px;display:none}
+.day-detail h3{font-size:18px;font-weight:700;margin-bottom:20px}
+.meal-detail{margin-bottom:16px;padding:16px;background:#f8fafc;border-radius:12px}
+.meal-detail h4{font-size:13px;font-weight:700;color:#0d9488;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.meal-detail p{font-size:14px;color:var(--dark);line-height:1.6}
+.meal-detail .cals{font-size:12px;color:var(--muted);margin-top:4px}
+.disclaimer{background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:14px 18px;font-size:13px;color:#92400e;display:flex;align-items:flex-start;gap:10px;margin-top:16px}
+body.dark{background:#0f172a;color:#e2e8f0}
+body.dark .input-card,body.dark .food-card,body.dark .day-card,body.dark .day-detail{background:#1e293b;border-color:#334155}
+body.dark .day-header{background:#134e4a}
+body.dark .meal-detail{background:#0f172a}
+body.dark .form-group input,body.dark .form-group select,body.dark .form-group textarea{background:#0f172a;border-color:#334155;color:#e2e8f0}
+body.dark .meal-chip{background:#0f172a;color:#e2e8f0}
+.sidebar::-webkit-scrollbar{width:4px}
+.sidebar::-webkit-scrollbar-track{background:transparent}
+.sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2);border-radius:4px}

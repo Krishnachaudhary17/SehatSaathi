@@ -61,6 +61,7 @@ async def send_message(
         sender_id=current_user.id,
         sender_name=current_user.name,
         sender_role=current_user.role,
+        message_type=body.message_type or "text",
         content=body.content
     )
     

@@ -1,0 +1,347 @@
+/* ── Triage Page Specific Layout ── */
+        .triage-page-grid {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 24px;
+            align-items: start;
+        }
+
+        .triage-col-left {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .triage-col-right {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* ── Shared card shell ── */
+        .t-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 24px;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+        }
+
+        .t-card-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0 0 18px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ── Patient details row ── */
+        .patient-fields {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .field-group input,
+        .field-group select {
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            color: #1e293b;
+            background: white;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .field-group input:focus,
+        .field-group select:focus {
+            border-color: var(--primary-green);
+        }
+
+        /* ── Symptoms input card ── */
+        .symptoms-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .symptoms-header .t-card-title {
+            margin: 0;
+        }
+
+        .btn-voice {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--primary-green);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 7px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-voice:hover { background: var(--primary-hover); }
+        .btn-voice.recording {
+            background: #dc2626;
+            animation: pulse-rec 1.2s infinite;
+        }
+        @keyframes pulse-rec {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.65; }
+        }
+
+        .symptoms-textarea {
+            width: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 14px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            color: #1e293b;
+            resize: none;
+            outline: none;
+            line-height: 1.7;
+            transition: border-color 0.2s;
+        }
+
+        .symptoms-textarea:focus { border-color: var(--primary-green); }
+        .symptoms-textarea::placeholder { color: #94a3b8; }
+
+        .symptoms-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+        }
+
+        .hint-text {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .btn-analyze {
+            background: #1e3a8a;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            padding: 12px 28px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-analyze:hover { background: #1e40af; transform: translateY(-1px); }
+        .btn-analyze:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        /* ── AI Result ── */
+        .t-result {
+            display: none;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 24px;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+        }
+
+        .t-result-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--primary-green);
+            margin: 0 0 14px 0;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .t-result-body {
+            font-size: 14px;
+            line-height: 1.8;
+            color: #334155;
+        }
+
+        /* ── Severity card ── */
+        .severity-indicator {
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 28px 16px;
+            text-align: center;
+            background: #f8fafc;
+            transition: background 0.4s;
+            margin-top: 4px;
+        }
+
+        .severity-emoji { font-size: 32px; margin-bottom: 10px; }
+
+        .severity-label {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0 0 6px 0;
+        }
+
+        .severity-sub {
+            font-size: 13px;
+            color: #64748b;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        /* ── Tips card ── */
+        .tips-card {
+            background: #f1f5f9;
+            border: none;
+        }
+
+        .tips-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .tips-list li {
+            font-size: 13px;
+            color: #475569;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            line-height: 1.5;
+        }
+
+        .tips-check { color: var(--primary-green); font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+
+        /* ── Doctor Recommendation Card ── */
+        .doctor-rec-box {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 10px;
+            padding: 14px 16px;
+        }
+
+        .doctor-rec-icon {
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .doctor-rec-info {
+            flex: 1;
+        }
+
+        .doctor-rec-type {
+            font-size: 15px;
+            font-weight: 700;
+            color: #065f46;
+            margin: 0 0 2px 0;
+        }
+
+        .doctor-rec-sub {
+            font-size: 12px;
+            color: #6b7280;
+            margin: 0;
+        }
+
+        .doctor-rec-btn {
+            background: var(--primary-green);
+            color: white;
+            text-decoration: none;
+            border-radius: 20px;
+            padding: 7px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: 0.2s;
+        }
+
+        .doctor-rec-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        /* ══════════════════════════════════════
+           DARK MODE OVERRIDES — triage.html
+           ══════════════════════════════════════ */
+        body.dark .t-card {
+            background: #1e293b;
+            border-color: #334155;
+        }
+        body.dark .t-card-title { color: #f1f5f9; }
+
+        body.dark .field-group label { color: #94a3b8; }
+        body.dark .field-group input,
+        body.dark .field-group select {
+            background: #0f172a;
+            border-color: #334155;
+            color: #f1f5f9;
+        }
+
+        body.dark .symptoms-textarea {
+            background: #0f172a;
+            border-color: #334155;
+            color: #f1f5f9;
+        }
+        body.dark .symptoms-textarea::placeholder { color: #475569; }
+        body.dark .hint-text { color: #64748b; }
+
+        body.dark .t-result {
+            background: #1e293b;
+            border-color: #334155;
+        }
+        body.dark .t-result-title { border-color: #334155; }
+        body.dark .t-result-body { color: #cbd5e1; }
+
+        body.dark .severity-indicator {
+            background: #0f172a;
+            border-color: #334155;
+        }
+        body.dark .severity-label { color: #f1f5f9; }
+        body.dark .severity-sub   { color: #94a3b8; }
+
+        body.dark .tips-card {
+            background: #0f172a;
+            border-color: #1e293b;
+        }
+        body.dark .tips-list li { color: #94a3b8; }
+
+        body.dark .doctor-rec-box {
+            background: #064e3b;
+            border-color: #065f46;
+        }
+        body.dark .doctor-rec-type { color: #6ee7b7; }
+        body.dark .doctor-rec-sub  { color: #94a3b8; }
+
+        body.dark .page-header h1 { color: #f1f5f9; }
+        body.dark .page-header p  { color: #94a3b8; }
+    
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }

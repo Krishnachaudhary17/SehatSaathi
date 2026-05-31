@@ -1,0 +1,97 @@
+.context-menu {
+            position: fixed;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            width: 170px;
+            display: none;
+            flex-direction: column;
+            z-index: 200;
+            overflow: hidden;
+        }
+        .context-menu button {
+            background: none;
+            border: none;
+            padding: 11px 16px;
+            text-align: left;
+            font-size: 13px;
+            color: #1e293b;
+            cursor: pointer;
+            width: 100%;
+            font-family: 'Inter', sans-serif;
+        }
+        .context-menu button:hover { background: #f8fafc; color: #0d9488; }
+        .context-menu button.delete { color: #ef4444; }
+        .context-menu button.delete:hover { background: #fef2f2; }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: #64748b;
+        }
+        .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+        .empty-state h3 { font-size: 18px; color: #1e293b; margin-bottom: 8px; }
+
+        /* Loading spinner row */
+        .loading-row td {
+            text-align: center;
+            padding: 32px;
+            color: #94a3b8;
+            font-size: 14px;
+        }
+
+        /* Upload drop zone */
+        .drop-zone {
+            border: 2px dashed #cbd5e1;
+            border-radius: 10px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #64748b;
+            font-size: 14px;
+        }
+        .drop-zone:hover, .drop-zone.dragover { border-color: #0d9488; background: #f0fdfa; color: #0d9488; }
+        .drop-zone input[type=file] { display: none; }
+        .drop-zone .dz-icon { font-size: 28px; margin-bottom: 6px; }
+        .drop-zone .dz-selected { font-weight: 600; color: #0d9488; margin-top: 6px; font-size: 13px; }
+
+        .upload-progress {
+            display: none;
+            margin-top: 8px;
+            font-size: 13px;
+            color: #0d9488;
+            text-align: center;
+        }
+
+        /* ══ DARK MODE — records.html ══ */
+        body.dark .records-card {
+            background: #1e293b; border-color: #334155;
+        }
+        body.dark .records-search input {
+            background: #0f172a; color: #f1f5f9; border-color: #334155;
+        }
+        body.dark .rec-tab {
+            background: #1e293b; border-color: #334155; color: #94a3b8;
+        }
+        body.dark .rec-tab.active {
+            background: #0d9488; color: white;
+        }
+        body.dark .records-table th { background: #0f172a; color: #94a3b8; }
+        body.dark .records-table td { color: #cbd5e1; border-color: #334155; }
+        body.dark .records-table tr:hover td { background: #1e293b; }
+        body.dark .modal-box {
+            background: #1e293b; border-color: #334155;
+        }
+        body.dark .modal-box h2 { color: #f1f5f9; }
+        body.dark .form-group label { color: #94a3b8; }
+        body.dark .form-group input,
+        body.dark .form-group select { background: #0f172a; border-color: #334155; color: #f1f5f9; }
+        body.dark .drop-zone { border-color: #334155; color: #64748b; }
+        body.dark .empty-state h3 { color: #f1f5f9; }
+    
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }

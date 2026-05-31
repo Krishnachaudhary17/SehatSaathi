@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patient Messages – Sehat Saathi</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="doctor-chat.css">
+</head>
+<body>
+
+<!-- ── Icon Sidebar ── -->
+<aside class="sidebar">
+  <a href="doctor-dashboard.html" class="sb-btn" title="Dashboard">📊</a>
+  <a href="doctor-chat.html" class="sb-btn active" title="Patient Messages">💬</a>
+  <a href="doctor-dashboard.html#profile" class="sb-btn" title="My Profile" id="btn-profile" onclick="openProfileModal();return false;">👤</a>
+  <div class="sb-spacer"></div>
+  <button class="sb-btn danger" title="Sign Out" onclick="doLogout()">🚪</button>
+</aside>
+
+<!-- ── Conversations Panel ── -->
+<div class="conv-panel">
+  <div class="conv-head">
+    <h2>💬 Patient Messages</h2>
+    <div class="search-box">
+      <span>🔍</span>
+      <input id="search-input" type="text" placeholder="Search patients…" oninput="filterConvs()">
+    </div>
+  </div>
+  <div class="conv-list" id="conv-list">
+    <div class="conv-empty"><div class="ico">⏳</div><p>Loading conversations…</p></div>
+  </div>
+</div>
+
+<!-- ── Chat Area ── -->
+<div class="chat-area" id="chat-area">
+  <div class="chat-empty" id="chat-placeholder">
+    <div class="icon">💬</div>
+    <h3>Select a Patient</h3>
+    <p>Choose a conversation from the left to start chatting.</p>
+  </div>
+
+  <!-- Active Chat -->
+  <div id="chat-view" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+    <div class="chat-topbar">
+      <div class="chat-topbar-avatar" id="ct-avatar">P</div>
+      <div class="chat-patient-info">
+        <strong id="ct-name">Patient</strong>
+        <span id="ct-sub">Appointment</span>
+      </div>
+      <button class="btn-action" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#10b981;" onclick="openRxModal()">📋 Prescription</button>
+    </div>
+    <div class="messages-area" id="messages-area"></div>
+    <div class="input-area">
+      <div class="input-row">
+        <textarea id="msg-input" placeholder="Type a message…" rows="1"
+          oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+        <div class="input-btns">
+          <button class="btn-rx" onclick="openRxModal()" title="Send Prescription">📋</button>
+          <button class="btn-send" onclick="sendMessage()">➤</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Prescription Modal ── -->
+<div class="modal-bg" id="rx-modal">
+  <div class="modal">
+    <h3>📋 Issue Prescription</h3>
+    <p class="modal-sub" id="rx-patient-label">For: Patient</p>
+    <div id="drug-list"></div>
+    <button class="btn-add-drug" onclick="addDrug()">＋ Add Medication</button>
+    <div class="form-group">
+      <label>Doctor's Notes / Instructions</label>
+      <textarea id="rx-notes" rows="3" placeholder="e.g. Take with food. Rest adequately. Review after 7 days."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeRxModal()">Cancel</button>
+      <button class="btn-issue" onclick="issueRx()">✅ Issue Prescription</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Profile Modal ── -->
+<div class="modal-bg" id="profile-modal">
+  <div class="modal profile-modal">
+    <h3>👤 My Profile</h3>
+    <p class="modal-sub">Update your professional details. Changes are visible to patients.</p>
+    <div class="form-group"><label>Specialty</label><input id="pf-specialty" type="text" placeholder="e.g. Cardiologist"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Consultation Fee (₹)</label><input id="pf-fee" type="number" placeholder="500"></div>
+      <div class="form-group"><label>Experience (years)</label><input id="pf-exp" type="number" placeholder="5"></div>
+    </div>
+    <div class="form-group">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+        <label>Clinic / Hospital Location</label>
+        <button id="btn-fetch-loc" onclick="fetchLiveLocation()" style="background:none;border:none;color:#0ea5e9;font-size:11px;font-weight:700;cursor:pointer;padding:0;">📍 Fetch Live Location</button>
+      </div>
+      <input id="pf-location" type="text" placeholder="e.g. Apollo Hospital, Mumbai">
+    </div>
+    <div class="form-group"><label>Phone / Contact</label><input id="pf-phone" type="text" placeholder="+91 98765 43210"></div>
+    <div class="form-group"><label>Bio / About</label><textarea id="pf-bio" rows="3" placeholder="Brief professional summary…"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeProfileModal()">Cancel</button>
+      <button class="btn-issue" onclick="saveProfile()">💾 Save Profile</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ── Auth ──────────────────────────────────────────────────
+const TOKEN = localStorage.getItem('access_token');
+const ROLE  = localStorage.getItem('user_role');
+const NAME  = localStorage.getItem('user_name') || 'Doctor';
+if (!TOKEN) window.location.href = 'login.html';
+if (ROLE !== 'doctor') window.location.href = 'index.html';
+
+// ── State ─────────────────────────────────────────────────
+let allConvs = [];
+let activeApptId = null;
+let pollTimer = null;
+
+// ── Load Conversations ────────────────────────────────────
+async function loadConversations() {
+  try {
+    const res = await fetch('/api/doctors/conversations', {
+      headers: { 'Authorization': `Bearer ${TOKEN}` }
+    });
+    if (!res.ok) throw new Error();
+    allConvs = await res.json();
+    renderConvList(allConvs);
+  } catch(e) {
+    document.getElementById('conv-list').innerHTML = '<div class="conv-empty"><div class="ico">⚠️</div><p>Could not load conversations</p></div>';
+  }
+}
+
+function renderConvList(list) {
+  const el = document.getElementById('conv-list');
+  if (!list.length) {
+    el.innerHTML = '<div class="conv-empty"><div class="ico">📭</div><p>No patient conversations yet.<br>Appointments will appear here when patients book with you.</p></div>';
+    return;
+  }
+  el.innerHTML = list.map(c => {
+    const initial = (c.patient_name || 'P').charAt(0).toUpperCase();
+    const statusCls = 'status-' + (c.status || 'confirmed').toLowerCase();
+    const isActive = c.appt_id === activeApptId;
+    return `<div class="conv-item${isActive ? ' active' : ''}" onclick="openConv('${c.appt_id}','${c.patient_name}','${c.appt_date}','${c.specialty}','${c.status}')">
+      <div class="conv-avatar">${initial}</div>
+      <div class="conv-info">
+        <div class="conv-name">${c.patient_name}</div>
+        <div class="conv-preview"><span class="${statusCls}">${c.status}</span> · ${c.specialty || ''}</div>
+      </div>
+      <div class="conv-date">${c.appt_date}</div>
+    </div>`;
+  }).join('');
+}
+
+function filterConvs() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  renderConvList(allConvs.filter(c => (c.patient_name || '').toLowerCase().includes(q)));
+}
+
+// ── Open Conversation ─────────────────────────────────────
+function openConv(apptId, patientName, apptDate, specialty, status) {
+  activeApptId = apptId;
+  renderConvList(allConvs.filter(c => {
+    const q = document.getElementById('search-input').value.toLowerCase();
+    return (c.patient_name || '').toLowerCase().includes(q);
+  }));
+
+  document.getElementById('chat-placeholder').style.display = 'none';
+  document.getElementById('chat-view').style.display = 'flex';
+
+  document.getElementById('ct-avatar').textContent = (patientName || 'P').charAt(0).toUpperCase();
+  document.getElementById('ct-name').textContent = patientName;
+  document.getElementById('ct-sub').textContent = `📅 ${apptDate} · ${specialty} · ${status}`;
+  document.getElementById('rx-patient-label').textContent = `For: ${patientName}`;
+
+  document.getElementById('messages-area').innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;">Loading…</div>';
+  loadMessages();
+  clearInterval(pollTimer);
+  pollTimer = setInterval(loadMessages, 5000);
+}
+
+// ── Messages ──────────────────────────────────────────────
+async function loadMessages() {
+  if (!activeApptId) return;
+  try {
+    const res = await fetch(`/api/messages/${activeApptId}`, {
+      headers: { 'Authorization': `Bearer ${TOKEN}` }
+    });
+    if (!res.ok) return;
+    renderMessages(await res.json());
+  } catch(e) {}
+}
+
+function renderMessages(msgs) {
+  const box = document.getElementById('messages-area');
+  const wasBottom = box.scrollHeight - box.scrollTop <= box.clientHeight + 80;
+  if (!msgs.length) {
+    box.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px;">No messages yet. Say hello!</div>';
+    return;
+  }
+  box.innerHTML = msgs.map(m => {
+    const mine = m.sender_role === 'doctor';
+    const time = new Date(m.sent_at).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+    if (m.message_type === 'prescription') {
+      return renderRxCard(m, mine, time);
+    }
+    return `<div class="msg-row ${mine ? 'mine' : 'theirs'}">
+      <div class="bubble">${m.content}</div>
+      <div class="msg-meta">${m.sender_name} · ${time}</div>
+    </div>`;
+  }).join('');
+  if (wasBottom) box.scrollTop = box.scrollHeight;
+}
+
+function renderRxCard(m, mine, time) {
+  let rx;
+  try { rx = JSON.parse(m.content); } catch(e) { return `<div class="msg-row ${mine?'mine':'theirs'}"><div class="bubble">${m.content}</div></div>`; }
+  const drugs = (rx.medications || []).map(d => `
+    <div class="rx-item">
+      <div class="rx-pill-icon">💊</div>
+      <div>
+        <div class="rx-drug">${d.name}</div>
+        <div class="rx-dose">${d.dosage}</div>
+        <div class="rx-freq">${d.frequency} · ${d.duration}</div>
+      </div>
+    </div>`).join('');
+  const today = new Date().toLocaleDateString('en-IN');
+  return `<div class="msg-row ${mine ? 'mine' : 'theirs'}" style="align-items:${mine?'flex-end':'flex-start'};">
+    <div class="rx-card">
+      <div class="rx-header">
+        <div class="rx-icon">Rx</div>
+        <div>
+          <h4>Medical Prescription</h4>
+          <p>Dr. ${NAME} · ${today}</p>
+        </div>
+      </div>
+      ${drugs}
+      ${rx.notes ? `<div class="rx-notes">📝 ${rx.notes}</div>` : ''}
+      <div class="rx-footer">
+        <span>Sehat Saathi · Digital Prescription</span>
+        <button class="btn-print" onclick="printRx(this.closest('.rx-card'))">🖨 Print</button>
+      </div>
+    </div>
+    <div class="msg-meta" style="margin-top:6px;">${m.sender_name} · ${time}</div>
+  </div>`;
+}
+
+function printRx(card) {
+  const w = window.open('', '_blank');
+  w.document.write(`<html><head><title>Prescription</title><style>body{font-family:sans-serif;padding:30px;max-width:500px;margin:auto;}h2{color:#0ea5e9;}table{width:100%;border-collapse:collapse;margin:14px 0;}td,th{padding:8px;border-bottom:1px solid #eee;text-align:left;}@media print{button{display:none;}}</style></head><body>${card.outerHTML}<br><button onclick="window.print()">🖨 Print</button></body></html>`);
+  w.document.close();
+}
+
+async function sendMessage() {
+  const inp = document.getElementById('msg-input');
+  const content = inp.value.trim();
+  if (!content || !activeApptId) return;
+  inp.value = '';
+  inp.style.height = 'auto';
+  try {
+    const res = await fetch(`/api/messages/${activeApptId}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content, message_type: 'text' })
+    });
+    if (res.ok) loadMessages();
+    else toast('⚠️ Failed to send');
+  } catch(e) { toast('⚠️ Connection error'); }
+}
+
+// ── Prescription ──────────────────────────────────────────
+let drugCount = 0;
+
+function openRxModal() {
+  if (!activeApptId) { toast('⚠️ Select a patient first.'); return; }
+  document.getElementById('drug-list').innerHTML = '';
+  document.getElementById('rx-notes').value = '';
+  drugCount = 0;
+  addDrug();
+  document.getElementById('rx-modal').classList.add('open');
+}
+function closeRxModal() { document.getElementById('rx-modal').classList.remove('open'); }
+
+function addDrug() {
+  drugCount++;
+  const id = drugCount;
+  const div = document.createElement('div');
+  div.className = 'drug-item';
+  div.id = `drug-${id}`;
+  div.innerHTML = `
+    <button class="remove-drug" onclick="document.getElementById('drug-${id}').remove()">✕ Remove</button>
+    <div class="form-row">
+      <div class="form-group"><label>Medication Name</label><input type="text" id="d${id}-name" placeholder="e.g. Metformin"></div>
+      <div class="form-group"><label>Dosage</label><input type="text" id="d${id}-dosage" placeholder="e.g. 500mg"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Frequency</label><input type="text" id="d${id}-freq" placeholder="e.g. Twice daily"></div>
+      <div class="form-group"><label>Duration</label><input type="text" id="d${id}-dur" placeholder="e.g. 7 days"></div>
+    </div>`;
+  document.getElementById('drug-list').appendChild(div);
+}
+
+async function issueRx() {
+  const drugs = [];
+  document.querySelectorAll('.drug-item').forEach(item => {
+    const idMatch = item.id.match(/\d+/);
+    if (!idMatch) return;
+    const i = idMatch[0];
+    const name = document.getElementById(`d${i}-name`)?.value.trim();
+    if (!name) return;
+    drugs.push({
+      name,
+      dosage:    document.getElementById(`d${i}-dosage`)?.value.trim() || '',
+      frequency: document.getElementById(`d${i}-freq`)?.value.trim() || '',
+      duration:  document.getElementById(`d${i}-dur`)?.value.trim() || '',
+    });
+  });
+  if (!drugs.length) { toast('⚠️ Add at least one medication.'); return; }
+
+  const payload = {
+    medications: drugs,
+    notes: document.getElementById('rx-notes').value.trim(),
+    issued_by: 'Dr. ' + NAME,
+    issued_on: new Date().toISOString()
+  };
+
+  try {
+    const res = await fetch(`/api/messages/${activeApptId}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: JSON.stringify(payload), message_type: 'prescription' })
+    });
+    if (res.ok) {
+      closeRxModal();
+      toast('✅ Prescription issued!');
+      loadMessages();
+    } else {
+      toast('⚠️ Failed to issue prescription.');
+    }
+  } catch(e) { toast('⚠️ Connection error.'); }
+}
+
+// ── Profile ───────────────────────────────────────────────
+let currentLat = null;
+let currentLng = null;
+
+async function openProfileModal() {
+  try {
+    const res = await fetch('/api/doctors/me', { headers: { 'Authorization': `Bearer ${TOKEN}` } });
+    if (res.ok) {
+      const d = await res.json();
+      document.getElementById('pf-specialty').value = d.specialty || '';
+      document.getElementById('pf-fee').value = d.fee || '';
+      document.getElementById('pf-exp').value = d.experience_years || '';
+      document.getElementById('pf-location').value = d.location || '';
+      document.getElementById('pf-phone').value = d.phone || '';
+      document.getElementById('pf-bio').value = d.bio || '';
+      currentLat = d.lat || null;
+      currentLng = d.lng || null;
+    }
+  } catch(e) {}
+  document.getElementById('profile-modal').classList.add('open');
+}
+function closeProfileModal() { document.getElementById('profile-modal').classList.remove('open'); }
+
+async function saveProfile() {
+  const body = {
+    specialty: document.getElementById('pf-specialty').value.trim() || undefined,
+    fee: parseInt(document.getElementById('pf-fee').value) || undefined,
+    experience_years: parseInt(document.getElementById('pf-exp').value) || undefined,
+    location: document.getElementById('pf-location').value.trim() || undefined,
+    phone: document.getElementById('pf-phone').value.trim() || undefined,
+    bio: document.getElementById('pf-bio').value.trim() || undefined,
+  };
+  if (currentLat !== null) body.lat = currentLat;
+  if (currentLng !== null) body.lng = currentLng;
+  try {
+    const res = await fetch('/api/doctors/me', {
+      method: 'PATCH',
+      headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (res.ok) {
+      closeProfileModal();
+      toast('✅ Profile updated!');
+    } else {
+      toast('⚠️ Update failed.');
+    }
+  } catch(e) { toast('⚠️ Connection error.'); }
+}
+
+async function fetchLiveLocation() {
+  const btn = document.getElementById('btn-fetch-loc');
+  const ogText = btn.textContent;
+  btn.textContent = '⏳ Fetching...';
+  if (!navigator.geolocation) {
+    toast('⚠️ Geolocation is not supported by your browser.');
+    btn.textContent = ogText;
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    currentLat = lat;
+    currentLng = lng;
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+      if (res.ok) {
+        const data = await res.json();
+        document.getElementById('pf-location').value = data.display_name || `${lat}, ${lng}`;
+        toast('✅ Location fetched successfully!');
+      } else {
+        document.getElementById('pf-location').value = `${lat}, ${lng}`;
+      }
+    } catch (e) {
+      document.getElementById('pf-location').value = `${lat}, ${lng}`;
+    }
+    btn.textContent = ogText;
+  }, (err) => {
+    toast('⚠️ Could not fetch location.');
+    btn.textContent = ogText;
+  });
+}
+
+// ── Logout ────────────────────────────────────────────────
+async function doLogout() {
+  try {
+    await fetch('/api/doctors/me', {
+      method: 'PATCH',
+      headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ available: false })
+    });
+  } catch(e) {}
+  
+  ['access_token','user_role','user_name','user_email'].forEach(k => localStorage.removeItem(k));
+  window.location.href = 'login.html';
+}
+
+// ── Toast ─────────────────────────────────────────────────
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── Close modals on backdrop click ───────────────────────
+document.getElementById('rx-modal').addEventListener('click', e => { if (e.target === document.getElementById('rx-modal')) closeRxModal(); });
+document.getElementById('profile-modal').addEventListener('click', e => { if (e.target === document.getElementById('profile-modal')) closeProfileModal(); });
+
+// ── Boot ──────────────────────────────────────────────────
+loadConversations();
+</script>
+</body>
+</html>
