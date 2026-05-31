@@ -63,3 +63,22 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
 @router.get("/me", response_model=UserOut)
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_me(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    # If the user is a doctor, explicitly delete their Doctor profile
+    # because the ForeignKey is set to SET NULL, not CASCADE
+    if current_user.role == "doctor":
+        from models import Doctor
+        result = await db.execute(select(Doctor).where(Doctor.user_id == current_user.id))
+        doc_profile = result.scalar_one_or_none()
+        if doc_profile:
+            await db.delete(doc_profile)
+    
+    # Delete the user. All other relations (Records, Appointments) use CASCADE
+    await db.delete(current_user)
+    await db.commit()
+    return None

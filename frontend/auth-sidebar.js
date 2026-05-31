@@ -115,6 +115,11 @@ function loadGoogleTranslate() {
                     <strong style="display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</strong>
                     <span style="font-size:11px;opacity:0.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;">${email}</span>
                 </div>
+                <button onclick="deleteAccount()" title="Delete Account" style="background:rgba(239,68,68,0.15);border:none;
+                    color:#ef4444;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;
+                    display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:4px;"
+                    onmouseover="this.style.background='rgba(239,68,68,0.25)'"
+                    onmouseout="this.style.background='rgba(239,68,68,0.15)'">🗑️</button>
                 <button onclick="logout()" title="Sign out" style="background:rgba(255,255,255,0.15);border:none;
                     color:white;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;
                     display:flex;align-items:center;justify-content:center;flex-shrink:0;"
@@ -137,8 +142,28 @@ function loadGoogleTranslate() {
         }
     });
 
-    window.logout = function () {
-        if (!confirm('Sign out of Sehat Saathi?')) return;
+    window.deleteAccount = async function () {
+        if (!confirm('DANGER: Are you sure you want to permanently delete your account? This action cannot be undone and will delete all your data.')) return;
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+        try {
+            const res = await fetch('/api/auth/me', {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                alert('Your account has been deleted successfully.');
+                logout(true); // pass true to skip confirm
+            } else {
+                alert('Failed to delete account. Please try again.');
+            }
+        } catch (e) {
+            alert('Connection error while trying to delete account.');
+        }
+    };
+
+    window.logout = function (skipConfirm = false) {
+        if (!skipConfirm && !confirm('Sign out of Sehat Saathi?')) return;
         localStorage.removeItem('access_token');
         localStorage.removeItem('user_name');
         localStorage.removeItem('user_email');

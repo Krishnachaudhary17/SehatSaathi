@@ -16,6 +16,7 @@
   <a href="doctor-chat.html" class="sb-btn active" title="Patient Messages">💬</a>
   <a href="doctor-dashboard.html#profile" class="sb-btn" title="My Profile" id="btn-profile" onclick="openProfileModal();return false;">👤</a>
   <div class="sb-spacer"></div>
+  <button class="sb-btn danger" title="Delete Account" onclick="deleteAccount()" style="color:#ef4444;">🗑️</button>
   <button class="sb-btn danger" title="Sign Out" onclick="doLogout()">🚪</button>
 </aside>
 
@@ -452,7 +453,8 @@ async function fetchLiveLocation() {
 }
 
 // ── Logout ────────────────────────────────────────────────
-async function doLogout() {
+async function doLogout(skipConfirm = false) {
+  if (!skipConfirm && !confirm('Sign out of Sehat Saathi?')) return;
   try {
     await fetch('/api/doctors/me', {
       method: 'PATCH',
@@ -463,6 +465,25 @@ async function doLogout() {
   
   ['access_token','user_role','user_name','user_email'].forEach(k => localStorage.removeItem(k));
   window.location.href = 'login.html';
+}
+
+// ── Delete Account ────────────────────────────────────────
+async function deleteAccount() {
+  if (!confirm('DANGER: Are you sure you want to permanently delete your doctor account? This action cannot be undone and will delete all your records.')) return;
+  try {
+    const res = await fetch('/api/auth/me', {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${TOKEN}` }
+    });
+    if (res.ok) {
+      alert('Your account has been deleted successfully.');
+      doLogout(true);
+    } else {
+      toast('⚠️ Failed to delete account. Please try again.');
+    }
+  } catch (e) {
+    toast('⚠️ Connection error while trying to delete account.');
+  }
 }
 
 // ── Toast ─────────────────────────────────────────────────
