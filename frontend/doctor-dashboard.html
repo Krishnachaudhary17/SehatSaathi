@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Portal – Sehat Saathi</title>
+    <meta name="description" content="Doctor dashboard for Sehat Saathi — view your schedule, patients, and consult notes.">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+/* ─────────────────────────────────────────────────────────
+   ROOT VARIABLES
+───────────────────────────────────────────────────────── */
+:root {
+    --sidebar-bg:   #1e293b;
+    --sidebar-hover: rgba(255,255,255,0.08);
+    --sidebar-active: rgba(255,255,255,0.14);
+    --accent:       #0ea5e9;
+    --accent-hover: #0284c7;
+    --bg:           #f1f5f9;
+    --surface:      #ffffff;
+    --border:       #e2e8f0;
+    --text:         #0f172a;
+    --muted:        #64748b;
+    --success:      #10b981;
+    --warning:      #f59e0b;
+    --danger:       #ef4444;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* ─────────────────────────────────────────────────────────
+   SIDEBAR
+───────────────────────────────────────────────────────── */
+.sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: var(--sidebar-bg);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 16px;
+    gap: 4px;
+    overflow-y: auto;
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 8px;
+    text-decoration: none;
+}
+
+.sidebar-brand img { width: 36px; height: 36px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.2); }
+.sidebar-brand span { font-size: 17px; font-weight: 700; color: white; }
+
+.sidebar-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 12px 12px 4px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: rgba(255,255,255,0.7);
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.15s, color 0.15s;
+    cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+}
+
+.nav-item:hover { background: var(--sidebar-hover); color: white; }
+.nav-item.active { background: var(--sidebar-active); color: white; }
+.nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+
+.sidebar-spacer { flex: 1; }
+
+.sidebar-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    margin-top: 8px;
+}
+
+.sidebar-avatar {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #6366f1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700; color: white;
+    flex-shrink: 0;
+}
+
+.sidebar-profile-info strong { display: block; font-size: 13px; color: white; }
+.sidebar-profile-info span { font-size: 11px; color: rgba(255,255,255,0.5); }
+
+.logout-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    color: rgba(255,100,100,0.85);
+    font-size: 13px; font-weight: 500;
+    cursor: pointer; border: none; background: none; width: 100%;
+    transition: background 0.15s;
+}
+.logout-btn:hover { background: rgba(239,68,68,0.12); color: #f87171; }
+
+/* ─────────────────────────────────────────────────────────
+   MAIN CONTENT
+───────────────────────────────────────────────────────── */
+.main-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+/* ─── Doctor Hero Header ─── */
+.doctor-hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #0c4a6e 100%);
+    border-radius: 20px;
+    padding: 32px 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    box-shadow: 0 8px 32px rgba(14, 165, 233, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.doctor-hero::before {
+    content: '🩺';
+    position: absolute;
+    right: 36px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 100px;
+    opacity: 0.06;
+}
+
+.hero-text h1 { font-size: 26px; font-weight: 800; color: white; margin-bottom: 6px; }
+.hero-text p  { font-size: 14px; color: #94a3b8; }
+
+.hero-status {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-shrink: 0;
+}
+
+.status-pill {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    padding: 10px 18px;
+    border-radius: 40px;
+    font-size: 14px; font-weight: 600; color: white;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+.status-pill:hover { background: rgba(255,255,255,0.13); }
+.status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+.status-dot.offline { background: #94a3b8; }
+
+/* ─── Stats Row ─── */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+.stat-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.07); transform: translateY(-2px); }
+
+.stat-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.stat-number { font-size: 28px; font-weight: 800; line-height: 1; }
+.stat-label  { font-size: 12px; color: var(--muted); margin-top: 4px; font-weight: 500; }
+
+/* ─── Content Grid ─── */
+.content-grid {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 20px;
+    min-height: 0;
+}
+
+/* ─── Schedule Panel ─── */
+.panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+.panel-header h2 { font-size: 16px; font-weight: 700; }
+
+.panel-header .header-tools { display: flex; align-items: center; gap: 10px; }
+
+.date-input {
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: 'Inter'; font-size: 13px;
+    outline: none; color: var(--text);
+    transition: border-color 0.2s;
+}
+.date-input:focus { border-color: var(--accent); }
+
+.panel-body { padding: 16px 24px; overflow-y: auto; flex: 1; }
+
+/* ─── Appointment Row ─── */
+.appt-row {
+    display: flex;
+    gap: 14px;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: #fafafa;
+    margin-bottom: 10px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.appt-row:hover { border-color: var(--accent); box-shadow: 0 2px 12px rgba(14,165,233,0.1); }
+
+.appt-avatar {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.appt-info { flex: 1; min-width: 0; }
+.appt-name { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+.appt-meta { font-size: 12px; color: var(--muted); }
+
+.appt-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+
+.appt-date {
+    font-size: 12px; font-weight: 600;
+    background: #eff6ff; color: #2563eb;
+    padding: 3px 10px; border-radius: 20px;
+    white-space: nowrap;
+}
+
+.status-badge {
+    font-size: 11px; font-weight: 700;
+    padding: 3px 10px; border-radius: 20px;
+    white-space: nowrap;
+}
+.status-confirmed  { background: #d1fae5; color: #065f46; }
+.status-cancelled  { background: #fee2e2; color: #991b1b; }
+.status-completed  { background: #f1f5f9; color: #475569; }
+
+.appt-actions { display: flex; gap: 6px; margin-top: 6px; }
+.btn-tiny {
+    padding: 5px 10px; border-radius: 6px;
+    font-size: 11px; font-weight: 600;
+    border: 1px solid var(--border);
+    background: white; color: var(--text);
+    cursor: pointer; transition: background 0.15s;
+}
+.btn-tiny:hover { background: #f1f5f9; }
+.btn-tiny.primary { background: var(--accent); color: white; border-color: var(--accent); }
+.btn-tiny.primary:hover { background: var(--accent-hover); }
+
+.empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--muted);
+}
+.empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state h3 { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.empty-state p { font-size: 13px; }
+
+/* ─── Right Panel (Quick Notes + Info) ─── */
+.right-col { display: flex; flex-direction: column; gap: 16px; }
+
+.quick-note-area {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-family: 'Inter'; font-size: 13px;
+    resize: none; outline: none;
+    line-height: 1.6;
+    transition: border-color 0.2s;
+}
+.quick-note-area:focus { border-color: var(--accent); }
+
+.btn-primary {
+    width: 100%;
+    padding: 11px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    font-family: 'Inter';
+    transition: background 0.2s, transform 0.15s;
+    margin-top: 8px;
+}
+.btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+
+/* ─── Tip Card ─── */
+.tip-card {
+    background: linear-gradient(135deg, #0ea5e9, #6366f1);
+    border-radius: 16px;
+    padding: 24px;
+    color: white;
+}
+.tip-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 8px; opacity: 0.85; }
+.tip-card p  { font-size: 13px; line-height: 1.7; opacity: 0.9; }
+
+/* ─── Skeleton loader ─── */
+.skeleton {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 8px;
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+.loading-skeleton .sk-row {
+    height: 70px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+}
+
+/* ─── Consult Note Modal ─── */
+.modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+
+.modal-box {
+    background: white;
+    border-radius: 20px;
+    padding: 28px;
+    width: 480px;
+    max-width: 96vw;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.2);
+    transform: translateY(16px);
+    transition: transform 0.2s;
+}
+.modal-overlay.open .modal-box { transform: translateY(0); }
+
+.modal-box h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.modal-box .modal-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+
+.modal-textarea {
+    width: 100%; padding: 12px;
+    border: 1.5px solid var(--border); border-radius: 10px;
+    font-family: 'Inter'; font-size: 14px;
+    resize: vertical; min-height: 130px; outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.6;
+}
+.modal-textarea:focus { border-color: var(--accent); }
+
+.modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+.btn-ghost {
+    padding: 10px 20px; border-radius: 10px;
+    border: 1.5px solid var(--border); background: white;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: background 0.15s;
+}
+.btn-ghost:hover { background: #f8fafc; }
+.btn-save {
+    padding: 10px 20px; border-radius: 10px;
+    background: var(--accent); color: white; border: none;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: background 0.15s;
+}
+.btn-save:hover { background: var(--accent-hover); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<!-- ─── SIDEBAR ─── -->
+<aside class="sidebar">
+    <a href="doctor-dashboard.html" class="sidebar-brand">
+        <img src="logo.png" alt="Sehat Saathi">
+        <span>Sehat Saathi</span>
+    </a>
+
+    <div class="sidebar-section-label">Doctor Portal</div>
+    <a href="doctor-dashboard.html" class="nav-item active">
+        <span class="nav-icon">📅</span> My Schedule
+    </a>
+    <a href="#" class="nav-item">
+        <span class="nav-icon">🗂️</span> Patient Records
+    </a>
+    <a href="#" class="nav-item">
+        <span class="nav-icon">📝</span> Consult Notes
+    </a>
+
+    <div class="sidebar-section-label" style="margin-top: 8px;">Account</div>
+    <a href="#" class="nav-item">
+        <span class="nav-icon">👤</span> My Profile
+    </a>
+    <a href="#" class="nav-item">
+        <span class="nav-icon">⚙️</span> Settings
+    </a>
+
+    <div class="sidebar-spacer"></div>
+
+    <div class="sidebar-profile">
+        <div class="sidebar-avatar" id="sb-avatar">D</div>
+        <div class="sidebar-profile-info">
+            <strong id="sb-name">Dr. ...</strong>
+            <span>Doctor</span>
+        </div>
+    </div>
+    <button class="logout-btn" onclick="doLogout()">
+        <span>🚪</span> Sign Out
+    </button>
+</aside>
+
+<!-- ─── MAIN ─── -->
+<main class="main-content">
+
+    <!-- Hero Header -->
+    <div class="doctor-hero">
+        <div class="hero-text">
+            <h1 id="hero-greeting">Good morning, Dr. Krishna 👋</h1>
+            <p id="hero-date">Loading today's summary...</p>
+        </div>
+        <div class="hero-status">
+            <div class="status-pill" id="status-toggle" onclick="toggleStatus(this)">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-label">Available</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#e0f2fe; color:#0284c7;">📅</div>
+            <div>
+                <div class="stat-number" id="stat-today" style="color:#0284c7;">—</div>
+                <div class="stat-label">Today's Appointments</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#d1fae5; color:#059669;">✅</div>
+            <div>
+                <div class="stat-number" id="stat-upcoming" style="color:#059669;">—</div>
+                <div class="stat-label">Upcoming</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#fef3c7; color:#d97706;">📊</div>
+            <div>
+                <div class="stat-number" id="stat-total" style="color:#d97706;">—</div>
+                <div class="stat-label">Total Patients</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#ede9fe; color:#7c3aed;">📥</div>
+            <div>
+                <div class="stat-number" id="stat-records" style="color:#7c3aed;">2</div>
+                <div class="stat-label">Shared Records</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Grid -->
+    <div class="content-grid">
+
+        <!-- Schedule Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>📋 Patient Schedule</h2>
+                <div class="header-tools">
+                    <input type="date" class="date-input" id="filter-date" onchange="filterByDate()">
+                    <button class="btn-tiny primary" onclick="showAll()">All</button>
+                </div>
+            </div>
+            <div class="panel-body" id="schedule-body">
+                <!-- Skeleton -->
+                <div class="loading-skeleton">
+                    <div class="skeleton sk-row"></div>
+                    <div class="skeleton sk-row"></div>
+                    <div class="skeleton sk-row"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="right-col">
+
+            <!-- Quick Consult Note -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>📝 Quick Consult Note</h2>
+                </div>
+                <div class="panel-body">
+                    <textarea class="quick-note-area" id="quick-note" rows="5" placeholder="Write a quick note for a patient (e.g. 'Continue Metformin 500mg twice daily, review in 2 weeks')..."></textarea>
+                    <button class="btn-primary" onclick="saveQuickNote()">💾 Save Note</button>
+                </div>
+            </div>
+
+            <!-- Tip Card -->
+            <div class="tip-card">
+                <h3>💡 Clinical Tip of the Day</h3>
+                <p id="clinical-tip">Loading tip...</p>
+            </div>
+
+        </div>
+    </div>
+</main>
+
+<!-- ─── Consult Note Modal ─── -->
+<div class="modal-overlay" id="note-modal">
+    <div class="modal-box">
+        <h2>📝 Write Consult Note</h2>
+        <p class="modal-sub" id="note-patient-info">For: Patient Appointment</p>
+        <textarea class="modal-textarea" id="note-content" placeholder="Enter clinical notes, diagnosis, follow-up instructions..."></textarea>
+        <div class="modal-footer">
+            <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+            <button class="btn-save" onclick="saveNote()">Save Note</button>
+        </div>
+    </div>
+</div>
+
+<!-- ─── Chat Drawer ─── -->
+<div id="chat-overlay" onclick="closeChat()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:800;"></div>
+<div id="chat-drawer" style="
+    position:fixed;right:-420px;top:0;bottom:0;width:420px;
+    background:#1e293b;display:flex;flex-direction:column;
+    z-index:900;transition:right 0.3s cubic-bezier(.4,0,.2,1);
+    box-shadow:-8px 0 40px rgba(0,0,0,0.3);
+">
+    <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;gap:12px;">
+        <div style="width:42px;height:42px;background:linear-gradient(135deg,#0ea5e9,#6366f1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>
+        <div style="flex:1;">
+            <div id="chat-patient-name" style="font-weight:700;color:white;font-size:15px;">Patient</div>
+            <div id="chat-appt-date" style="font-size:12px;color:#94a3b8;">Appointment</div>
+        </div>
+        <button onclick="closeChat()" style="background:none;border:none;color:#94a3b8;font-size:20px;cursor:pointer;padding:4px;">✕</button>
+    </div>
+    <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;"></div>
+    <div style="padding:16px;border-top:1px solid rgba(255,255,255,0.1);display:flex;gap:10px;">
+        <input id="chat-input" type="text" placeholder="Type a message…" onkeydown="if(event.key==='Enter')sendChatMsg()" style="
+            flex:1;padding:12px 16px;border-radius:12px;
+            background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);
+            color:white;font-size:14px;outline:none;
+        ">
+        <button onclick="sendChatMsg()" style="
+            width:46px;height:46px;border-radius:12px;
+            background:linear-gradient(135deg,#0ea5e9,#6366f1);
+            border:none;color:white;font-size:20px;cursor:pointer;
+        ">➤</button>
+    </div>
+</div>
+
+<script>
+// ─── Auth Guard ───────────────────────────────────────────
+const token = localStorage.getItem('access_token');
+const role  = localStorage.getItem('user_role');
+const name  = localStorage.getItem('user_name') || 'Doctor';
+
+if (!token) { window.location.href = 'login.html'; }
+if (role !== 'doctor') { window.location.href = 'index.html'; }
+
+// ─── UI Init ─────────────────────────────────────────────
+(function initUI() {
+    // Sidebar name + avatar
+    const firstName = name.split(' ')[0];
+    document.getElementById('sb-name').textContent = 'Dr. ' + name;
+    document.getElementById('sb-avatar').textContent = name.charAt(0).toUpperCase();
+
+    // Greeting
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    document.getElementById('hero-greeting').textContent = `${greeting}, Dr. ${firstName} 👋`;
+
+    // Date summary
+    const today = new Date();
+    const dateStr = today.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    document.getElementById('hero-date').textContent = `Today is ${dateStr}`;
+
+    // Set filter date to today
+    document.getElementById('filter-date').valueAsDate = today;
+})();
+
+// ─── Clinical Tips ───────────────────────────────────────
+const clinicalTips = [
+    "Always document medication changes in patient records immediately to prevent prescription errors.",
+    "When in doubt about a diagnosis, consult the NICE clinical guidelines — they are updated regularly.",
+    "Spend the first 90 seconds of every consultation just listening. Patients reveal the most important symptoms without prompting.",
+    "For hypertension, always measure in both arms at the first visit. A difference of >20 mmHg warrants investigation.",
+    "The most effective way to improve patient medication adherence is once-daily dosing whenever clinically appropriate.",
+    "In elderly patients, always review the full medication list for polypharmacy — 5+ drugs significantly increases fall risk.",
+    "Use the CAGE questionnaire for a quick, validated alcohol use screen during routine appointments.",
+    "Remember: 'Never event' — always verify patient identity with two identifiers before any procedure.",
+];
+document.getElementById('clinical-tip').textContent = clinicalTips[Math.floor(Math.random() * clinicalTips.length)];
+
+// ─── Load Schedule ────────────────────────────────────────
+let allAppointments = [];
+
+async function loadSchedule() {
+    try {
+        const res = await fetch('/api/appointments/schedule', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        allAppointments = await res.json();
+        updateStats();
+        renderSchedule(allAppointments);
+    } catch (err) {
+        document.getElementById('schedule-body').innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">⚠️</div>
+                <h3>Could not load schedule</h3>
+                <p>${err.message}</p>
+            </div>`;
+    }
+}
+
+function updateStats() {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayAppts    = allAppointments.filter(a => a.appt_date === todayStr);
+    const upcomingAppts = allAppointments.filter(a => a.appt_date >= todayStr && a.status === 'Confirmed');
+
+    document.getElementById('stat-today').textContent    = todayAppts.length;
+    document.getElementById('stat-upcoming').textContent = upcomingAppts.length;
+    document.getElementById('stat-total').textContent    = allAppointments.length;
+}
+
+function renderSchedule(appts) {
+    const body = document.getElementById('schedule-body');
+    if (!appts.length) {
+        body.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">📭</div>
+                <h3>No appointments found</h3>
+                <p>No patients have booked with you yet, or no appointments match this date filter.</p>
+            </div>`;
+        return;
+    }
+
+    body.innerHTML = appts.map((a, i) => {
+        const statusClass = a.status === 'Confirmed' ? 'status-confirmed' : a.status === 'Cancelled' ? 'status-cancelled' : 'status-completed';
+        const dateStr = new Date(a.appt_date + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
+        return `
+        <div class="appt-row" id="appt-${i}">
+            <div class="appt-avatar">👤</div>
+            <div class="appt-info">
+                <div class="appt-name">Patient Appointment</div>
+                <div class="appt-meta">🏥 ${a.hospital || 'Not specified'}</div>
+                <div class="appt-meta" style="margin-top:3px;">💬 ${a.reason || 'No reason provided'}</div>
+                <div class="appt-actions">
+                    <button class="btn-tiny primary" onclick="openNoteModal(${i})">📝 Consult Note</button>
+                    <button class="btn-tiny" onclick="openChat('${a.id}', '${a.appt_date}')">💬 Chat Patient</button>
+                </div>
+            </div>
+            <div class="appt-right">
+                <div class="appt-date">${dateStr}</div>
+                <div class="status-badge ${statusClass}">${a.status}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function filterByDate() {
+    const selected = document.getElementById('filter-date').value;
+    if (!selected) { renderSchedule(allAppointments); return; }
+    const filtered = allAppointments.filter(a => a.appt_date === selected);
+    renderSchedule(filtered);
+}
+
+function showAll() {
+    document.getElementById('filter-date').value = '';
+    renderSchedule(allAppointments);
+}
+
+// ─── Status Toggle ───────────────────────────────────────
+let isAvailable = true;
+function toggleStatus(btn) {
+    isAvailable = !isAvailable;
+    document.getElementById('status-dot').className = 'status-dot' + (isAvailable ? '' : ' offline');
+    document.getElementById('status-label').textContent = isAvailable ? 'Available' : 'Away';
+}
+
+// ─── Consult Note Modal ──────────────────────────────────
+let currentApptIndex = null;
+function openNoteModal(i) {
+    currentApptIndex = i;
+    const a = allAppointments[i];
+    document.getElementById('note-patient-info').textContent = `For appointment at ${a.hospital || 'clinic'} on ${a.appt_date}`;
+    document.getElementById('note-content').value = '';
+    document.getElementById('note-modal').classList.add('open');
+}
+function closeModal() {
+    document.getElementById('note-modal').classList.remove('open');
+}
+document.getElementById('note-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('note-modal')) closeModal();
+});
+function saveNote() {
+    const content = document.getElementById('note-content').value.trim();
+    if (!content) return;
+    // Store in localStorage as a simple demo
+    const notes = JSON.parse(localStorage.getItem('doctor_notes') || '[]');
+    notes.unshift({ apptIndex: currentApptIndex, note: content, date: new Date().toISOString() });
+    localStorage.setItem('doctor_notes', JSON.stringify(notes));
+    closeModal();
+    showToast('✅ Note saved successfully!');
+}
+
+function viewRecords(i) {
+    showToast('🗂️ Patient record sharing inbox — coming soon!');
+}
+
+// ─── Quick Note ──────────────────────────────────────────
+function saveQuickNote() {
+    const content = document.getElementById('quick-note').value.trim();
+    if (!content) { showToast('⚠️ Please write a note first.'); return; }
+    const notes = JSON.parse(localStorage.getItem('doctor_quick_notes') || '[]');
+    notes.unshift({ note: content, date: new Date().toISOString() });
+    localStorage.setItem('doctor_quick_notes', JSON.stringify(notes));
+    document.getElementById('quick-note').value = '';
+    showToast('✅ Quick note saved!');
+}
+
+// ─── Logout ──────────────────────────────────────────────
+function doLogout() {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('user_role');
+    localStorage.removeItem('user_name');
+    localStorage.removeItem('user_email');
+    window.location.href = 'login.html';
+}
+
+// ─── Toast ───────────────────────────────────────────────
+function showToast(msg) {
+    const t = document.createElement('div');
+    t.textContent = msg;
+    Object.assign(t.style, {
+        position: 'fixed', bottom: '28px', right: '28px',
+        background: '#1e293b', color: 'white',
+        padding: '12px 20px', borderRadius: '12px',
+        fontSize: '14px', fontWeight: '600',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+        zIndex: '9999', opacity: '0',
+        transition: 'opacity 0.3s, transform 0.3s',
+        transform: 'translateY(8px)'
+    });
+    document.body.appendChild(t);
+    requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translateY(0)'; });
+    setTimeout(() => {
+        t.style.opacity = '0'; t.style.transform = 'translateY(8px)';
+        setTimeout(() => t.remove(), 300);
+    }, 3000);
+}
+
+// ─── Chat Drawer ─────────────────────────────────────────
+let activeChatApptId = null;
+let chatPollInterval = null;
+
+function openChat(apptId, apptDate) {
+    activeChatApptId = apptId;
+    document.getElementById('chat-patient-name').textContent = 'Patient Chat';
+    document.getElementById('chat-appt-date').textContent = '📅 Appointment: ' + apptDate;
+    document.getElementById('chat-messages').innerHTML = '<div style="text-align:center;color:#64748b;font-size:13px;padding:20px;">Loading messages…</div>';
+    document.getElementById('chat-drawer').style.right = '0';
+    document.getElementById('chat-overlay').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    loadChatMessages();
+    clearInterval(chatPollInterval);
+    chatPollInterval = setInterval(loadChatMessages, 5000);
+}
+
+function closeChat() {
+    document.getElementById('chat-drawer').style.right = '-420px';
+    document.getElementById('chat-overlay').style.display = 'none';
+    document.body.style.overflow = '';
+    clearInterval(chatPollInterval);
+    activeChatApptId = null;
+}
+
+async function loadChatMessages() {
+    if (!activeChatApptId) return;
+    try {
+        const res = await fetch(`/api/messages/${activeChatApptId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error();
+        const msgs = await res.json();
+        renderChatMessages(msgs);
+    } catch (e) {
+        // silently fail on poll
+    }
+}
+
+function renderChatMessages(msgs) {
+    const container = document.getElementById('chat-messages');
+    if (!msgs.length) {
+        container.innerHTML = '<div style="text-align:center;color:#64748b;font-size:13px;padding:32px;">No messages yet.<br>Start the conversation!</div>';
+        return;
+    }
+    const isBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
+    container.innerHTML = msgs.map(m => {
+        const isMine = m.sender_role === 'doctor';
+        return `<div style="display:flex;flex-direction:column;align-items:${isMine ? 'flex-end' : 'flex-start'};">
+            <div style="max-width:78%;padding:10px 14px;border-radius:${isMine ? '16px 16px 4px 16px' : '16px 16px 16px 4px'};background:${isMine ? 'linear-gradient(135deg,#0ea5e9,#6366f1)' : 'rgba(255,255,255,0.08)'};color:white;font-size:14px;line-height:1.4;">${m.content}</div>
+            <div style="font-size:11px;color:#64748b;margin-top:4px;">${m.sender_name} · ${new Date(m.sent_at).toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'})}</div>
+        </div>`;
+    }).join('');
+    if (isBottom) container.scrollTop = container.scrollHeight;
+}
+
+async function sendChatMsg() {
+    const input = document.getElementById('chat-input');
+    const content = input.value.trim();
+    if (!content || !activeChatApptId) return;
+    input.value = '';
+    try {
+        const res = await fetch(`/api/messages/${activeChatApptId}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content })
+        });
+        if (!res.ok) throw new Error();
+        await loadChatMessages();
+    } catch (e) {
+        showToast('⚠️ Failed to send message.');
+    }
+}
+
+// ─── Boot ────────────────────────────────────────────────
+loadSchedule();
+</script>
+</body>
+</html>

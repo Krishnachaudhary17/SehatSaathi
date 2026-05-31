@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login – Sehat Saathi</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="description" content="Sign in or create your Sehat Saathi account to manage your health records.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f0fdfa;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background-image:
+                radial-gradient(ellipse at 20% 20%, rgba(13,148,136,0.12) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, rgba(59,130,246,0.10) 0%, transparent 60%);
+        }
+
+        /* ── Card wrapper ── */
+        .auth-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 440px;
+            overflow: hidden;
+        }
+
+        /* ── Brand header ── */
+        .auth-header {
+            background: linear-gradient(135deg, #0d9488, #3b82f6);
+            padding: 32px 36px 28px;
+            text-align: center;
+        }
+
+        .auth-logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+
+        .auth-logo img {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .auth-logo span {
+            font-size: 22px;
+            font-weight: 800;
+            color: white;
+            letter-spacing: -0.3px;
+        }
+
+        .auth-tagline {
+            font-size: 13px;
+            color: rgba(255,255,255,0.8);
+            margin-top: 4px;
+        }
+
+        /* ── Tab switcher ── */
+        .auth-tabs {
+            display: flex;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 14px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #94a3b8;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-family: 'Inter', sans-serif;
+            transition: 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .auth-tab.active {
+            color: #0d9488;
+            border-bottom-color: #0d9488;
+        }
+
+        .auth-tab:hover:not(.active) { color: #64748b; }
+
+        /* ── Form body ── */
+        .auth-body {
+            padding: 28px 36px 32px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+
+        input[type=text],
+        input[type=email],
+        input[type=password],
+        select {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            color: #0f172a;
+            background: #f8fafc;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        input:focus, select:focus {
+            border-color: #0d9488;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(13,148,136,0.1);
+        }
+
+        /* Password wrapper with toggle */
+        .pw-wrapper {
+            position: relative;
+        }
+
+        .pw-wrapper input {
+            padding-right: 42px;
+        }
+
+        .pw-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #94a3b8;
+            padding: 4px;
+        }
+
+        .pw-toggle:hover { color: #0d9488; }
+
+        /* ── Submit button ── */
+        .btn-auth {
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(135deg, #0d9488, #0f766e);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 6px;
+            letter-spacing: 0.2px;
+        }
+
+        .btn-auth:hover { background: linear-gradient(135deg, #0f766e, #0d9488); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(13,148,136,0.3); }
+        .btn-auth:active { transform: translateY(0); }
+        .btn-auth:disabled { background: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* ── Error / success alert ── */
+        .auth-alert {
+            display: none;
+            padding: 11px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 18px;
+        }
+
+        .auth-alert.error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+        .auth-alert.success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+
+        /* ── Footer link ── */
+        .auth-footer {
+            text-align: center;
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 20px;
+        }
+
+        .auth-footer a {
+            color: #0d9488;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* ── Guest access banner ── */
+        .guest-banner {
+            margin: 0 36px 28px;
+            background: #f0fdfa;
+            border: 1px solid #99f6e4;
+            border-radius: 10px;
+            padding: 12px 16px;
+            text-align: center;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .guest-banner a {
+            color: #0d9488;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* ── Loading spinner ── */
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.4);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Role Selector ── */
+        .role-selector {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .role-option {
+            flex: 1;
+            position: relative;
+        }
+        .role-option input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .role-card {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #64748b;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .role-option input:checked ~ .role-card {
+            border-color: #0d9488;
+            background: #f0fdfa;
+            color: #0d9488;
+            box-shadow: 0 0 0 3px rgba(13,148,136,0.1);
+        }
+    
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+    <div class="auth-card">
+
+        <!-- Brand Header -->
+        <div class="auth-header">
+            <div class="auth-logo">
+                <img src="logo.png" alt="Sehat Saathi logo">
+                <span>Sehat Saathi</span>
+            </div>
+            <p class="auth-tagline">Your personal health companion</p>
+        </div>
+
+        <!-- Tab Switcher -->
+        <div class="auth-tabs">
+            <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Sign In</button>
+            <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Create Account</button>
+        </div>
+
+        <!-- Alert box -->
+        <div class="auth-body" style="padding-bottom: 0; padding-top: 20px;">
+            <div class="auth-alert" id="auth-alert"></div>
+        </div>
+
+        <!-- ── LOGIN FORM ── -->
+        <div class="auth-body" id="login-form">
+            <div class="form-group">
+                <label for="login-email">Email address</label>
+                <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label for="login-password">Password</label>
+                <div class="pw-wrapper">
+                    <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+                    <button class="pw-toggle" onclick="togglePw('login-password', this)" type="button">👁️</button>
+                </div>
+            </div>
+            <button class="btn-auth" id="login-btn" onclick="doLogin()">Sign In</button>
+            <div class="auth-footer">
+                Don't have an account? <a onclick="switchTab('register')">Create one</a>
+            </div>
+        </div>
+
+        <!-- ── REGISTER FORM ── -->
+        <div class="auth-body" id="register-form" style="display:none;">
+            <div class="role-selector">
+                <label class="role-option">
+                    <input type="radio" name="reg-role" value="patient" checked onchange="document.getElementById('reg-specialty-group').style.display='none'">
+                    <div class="role-card">👤 Patient</div>
+                </label>
+                <label class="role-option">
+                    <input type="radio" name="reg-role" value="doctor" onchange="document.getElementById('reg-specialty-group').style.display='block'">
+                    <div class="role-card">🩺 Doctor</div>
+                </label>
+            </div>
+            <div class="form-group">
+                <label for="reg-name">Full Name</label>
+                <input type="text" id="reg-name" placeholder="e.g. Rahul Sharma" autocomplete="name">
+            </div>
+            <div class="form-group" id="reg-specialty-group" style="display:none;">
+                <label for="reg-specialty">Specialty</label>
+                <select id="reg-specialty">
+                    <option value="General Physician">General Physician</option>
+                    <option value="Cardiologist">Cardiologist</option>
+                    <option value="Dermatologist">Dermatologist</option>
+                    <option value="Pediatrician">Pediatrician</option>
+                    <option value="Orthopedic">Orthopedic</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="reg-email">Email address</label>
+                <input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label for="reg-password">Password <span style="color:#94a3b8;font-weight:400;">(min 6 chars)</span></label>
+                <div class="pw-wrapper">
+                    <input type="password" id="reg-password" placeholder="••••••••" autocomplete="new-password">
+                    <button class="pw-toggle" onclick="togglePw('reg-password', this)" type="button">👁️</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="reg-lang">Preferred Language</label>
+                <select id="reg-lang">
+                    <option value="en">English</option>
+                    <option value="hi">Hindi (हिंदी)</option>
+                    <option value="bn">Bengali (বাংলা)</option>
+                    <option value="te">Telugu (తెలుగు)</option>
+                    <option value="mr">Marathi (मराठी)</option>
+                    <option value="ta">Tamil (தமிழ்)</option>
+                    <option value="ur">Urdu (اردو)</option>
+                    <option value="gu">Gujarati (ગુજરાતી)</option>
+                    <option value="kn">Kannada (ಕನ್ನಡ)</option>
+                    <option value="or">Odia (ଓଡ଼ିଆ)</option>
+                    <option value="ml">Malayalam (മലയാളം)</option>
+                    <option value="pa">Punjabi (ਪੰਜਾਬੀ)</option>
+                    <option value="as">Assamese (অসমীয়া)</option>
+                </select>
+            </div>
+            <button class="btn-auth" id="register-btn" onclick="doRegister()">Create Account</button>
+            <div class="auth-footer">
+                Already have an account? <a onclick="switchTab('login')">Sign in</a>
+            </div>
+        </div>
+
+        <!-- Guest Access -->
+        <div class="guest-banner">
+            Just browsing? <a onclick="continueAsGuest()">Continue as Guest</a> — some features may be limited.
+        </div>
+
+    </div>
+
+    <script>
+        // ── Redirect if already logged in ────────────────────────
+        if (localStorage.getItem('access_token')) {
+            if (localStorage.getItem('user_role') === 'doctor') {
+                window.location.href = 'doctor-dashboard.html';
+            } else {
+                window.location.href = 'index.html';
+            }
+        }
+
+        // ── Tab switcher ──────────────────────────────────────────
+        function switchTab(tab) {
+            document.getElementById('login-form').style.display    = tab === 'login'    ? '' : 'none';
+            document.getElementById('register-form').style.display = tab === 'register' ? '' : 'none';
+            document.getElementById('tab-login').classList.toggle('active',    tab === 'login');
+            document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+            hideAlert();
+        }
+
+        // ── Alert helpers ─────────────────────────────────────────
+        function showAlert(msg, type = 'error') {
+            const el = document.getElementById('auth-alert');
+            el.textContent = msg;
+            el.className = 'auth-alert ' + type;
+            el.style.display = 'block';
+        }
+
+        function hideAlert() {
+            document.getElementById('auth-alert').style.display = 'none';
+        }
+
+        // ── Password toggle ───────────────────────────────────────
+        function togglePw(inputId, btn) {
+            const inp = document.getElementById(inputId);
+            if (inp.type === 'password') {
+                inp.type = 'text';
+                btn.textContent = '🙈';
+            } else {
+                inp.type = 'password';
+                btn.textContent = '👁️';
+            }
+        }
+
+        // ── Loading state ─────────────────────────────────────────
+        function setLoading(btnId, loading, label) {
+            const btn = document.getElementById(btnId);
+            btn.disabled = loading;
+            btn.innerHTML = loading
+                ? `<span class="spinner"></span> Please wait...`
+                : label;
+        }
+
+        // ── Login ─────────────────────────────────────────────────
+        async function doLogin() {
+            hideAlert();
+            const email    = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            if (!email || !password) { showAlert('Please enter your email and password.'); return; }
+
+            setLoading('login-btn', true, '');
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Login failed.');
+
+                // Store token + user info
+                localStorage.setItem('access_token', data.access_token);
+                const user = await fetchAndStoreUser();
+
+                showAlert('Login successful! Redirecting...', 'success');
+                setTimeout(() => {
+                    if (user && user.role === 'doctor') window.location.href = 'doctor-dashboard.html';
+                    else window.location.href = 'index.html';
+                }, 800);
+
+            } catch(err) {
+                showAlert('❌ ' + err.message);
+            } finally {
+                setLoading('login-btn', false, 'Sign In');
+            }
+        }
+
+        // ── Register ──────────────────────────────────────────────
+        async function doRegister() {
+            hideAlert();
+            const name     = document.getElementById('reg-name').value.trim();
+            const email    = document.getElementById('reg-email').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const language = document.getElementById('reg-lang').value;
+            const roleEl = document.querySelector('input[name="reg-role"]:checked');
+            const role = roleEl ? roleEl.value : 'patient';
+            const specialty = role === 'doctor' ? document.getElementById('reg-specialty').value : null;
+
+            if (!name)              { showAlert('Please enter your full name.'); return; }
+            if (!email)             { showAlert('Please enter a valid email.'); return; }
+            if (password.length < 6){ showAlert('Password must be at least 6 characters.'); return; }
+
+            setLoading('register-btn', true, '');
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password, language, role, specialty })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Registration failed.');
+
+                localStorage.setItem('access_token', data.access_token);
+                const user = await fetchAndStoreUser();
+
+                showAlert('Account created! Redirecting...', 'success');
+                setTimeout(() => {
+                    if (user && user.role === 'doctor') window.location.href = 'doctor-dashboard.html';
+                    else window.location.href = 'index.html';
+                }, 800);
+
+            } catch(err) {
+                showAlert('❌ ' + err.message);
+            } finally {
+                setLoading('register-btn', false, 'Create Account');
+            }
+        }
+
+        // ── Fetch user profile and store name ────────────────────
+        async function fetchAndStoreUser() {
+            try {
+                const res = await fetch('/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                });
+                if (res.ok) {
+                    const user = await res.json();
+                    localStorage.setItem('user_name', user.name);
+                    localStorage.setItem('user_email', user.email);
+                    localStorage.setItem('user_role', user.role);
+                    return user;
+                }
+            } catch(e) { /* ignore */ }
+            return null;
+        }
+
+        // ── Guest ─────────────────────────────────────────────────
+        function continueAsGuest() {
+            localStorage.removeItem('access_token');
+            window.location.href = 'index.html';
+        }
+
+        // ── Enter key support ─────────────────────────────────────
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter') return;
+            if (document.getElementById('login-form').style.display !== 'none') doLogin();
+            else doRegister();
+        });
+    </script>
+</body>
+</html>

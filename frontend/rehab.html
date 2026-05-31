@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rehab Monitor – Sehat Saathi</title>
+    <meta name="description" content="AI-powered physiotherapy rehab monitor with real-time exercise form feedback via Gemini Vision.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+/* =====================================================================
+   GLOBAL DESIGN TOKENS
+   ===================================================================== */
+:root {
+    /* Sehat Saathi brand */
+    --primary-green: #007f66;
+    --primary-hover: #006652;
+    --danger-red: #ff4d4f;
+
+    /* PhysioAI dark clinical palette */
+    --bg-base:       #0a0d12;
+    --bg-card:       #111620;
+    --bg-card-2:     #161c28;
+    --border:        #1e2a3a;
+    --accent:        #00c6ff;
+    --accent-dim:    #0a3a4a;
+    --green:         #00e676;
+    --green-dim:     #0a2e1a;
+    --amber:         #ffc107;
+    --amber-dim:     #2e2100;
+    --red:           #ff4757;
+    --red-dim:       #2e0a0a;
+    --text-primary:  #e8f0fe;
+    --text-secondary:#7a8fa6;
+    --text-muted:    #3d4f62;
+    --radius:        12px;
+    --font-sans:     'Inter', system-ui, sans-serif;
+    --font-mono:     'JetBrains Mono', 'Fira Code', monospace;
+    --transition:    220ms cubic-bezier(.4,0,.2,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    display: flex;
+    height: 100vh;
+    font-family: var(--font-sans);
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* =====================================================================
+   SIDEBAR (Sehat Saathi standard)
+   ===================================================================== */
+.sidebar {
+    width: 260px;
+    background-color: var(--primary-green);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    flex-shrink: 0;
+}
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+    text-decoration: none;
+    color: inherit;
+}
+.brand .logo-icon {
+    display: flex;
+    line-height: 0;
+    font-size: 0;
+}
+.brand .logo-icon img {
+    display: block;
+    width: 40px;
+    height: 40px;
+    border: 2px solid white;
+    box-sizing: border-box;
+}
+.brand h2 {
+    white-space: nowrap;
+    font-size: 18px;
+    margin: 0;
+    color: white;
+}
+.nav-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    margin-top: 24px;
+}
+.nav-item {
+    color: rgba(255,255,255,0.8);
+    text-decoration: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: 0.2s;
+}
+.nav-item:hover, .nav-item.active {
+    background-color: rgba(255,255,255,0.1);
+    color: white;
+}
+.btn-nav-ai {
+    margin-top: 16px;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    color: white;
+    border: none;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.2s, opacity 0.2s;
+    width: 100%;
+    box-shadow: 0 4px 12px rgba(99,102,241,0.3);
+}
+.btn-nav-ai:hover { opacity: 0.9; transform: translateY(-2px); }
+.btn-emergency {
+    background-color: var(--danger-red);
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 12px rgba(255,77,79,0.3);
+}
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 100%;
+    background-color: #2aa87e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.user-info { display: flex; flex-direction: column; }
+.user-info strong { color: white; font-size: 15px; }
+.user-info span { color: #b2d8cc; font-size: 12px; }
+
+/* =====================================================================
+   MAIN CONTENT AREA
+   ===================================================================== */
+.main-content {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg-base);
+    display: flex;
+    flex-direction: column;
+}
+
+/* =====================================================================
+   PHYSIO APP HEADER
+   ===================================================================== */
+.app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+.physio-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+}
+.physio-logo-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.physio-logo-icon svg { width: 18px; height: 18px; color: #000; }
+
+.header-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transition: background var(--transition);
+}
+.status-dot.live  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.status-dot.error { background: var(--red);   box-shadow: 0 0 6px var(--red); }
+
+/* =====================================================================
+   MAIN TRACKER GRID
+   ===================================================================== */
+.main-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 20px;
+    padding: 20px 28px;
+    flex: 1;
+}
+@media (max-width: 1024px) {
+    .main-grid { grid-template-columns: 1fr; }
+}
+
+/* =====================================================================
+   CARDS
+   ===================================================================== */
+.p-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+.p-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+}
+.p-card-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+}
+.p-card-body { padding: 18px; }
+
+/* =====================================================================
+   VIDEO FEED
+   ===================================================================== */
+.video-wrapper {
+    position: relative;
+    background: #000;
+    border-radius: var(--radius);
+    overflow: hidden;
+    aspect-ratio: 4/3;
+}
+#webcam {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transform: scaleX(-1);
+}
+#canvas-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    transform: scaleX(-1);
+}
+.video-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: var(--text-secondary);
+}
+.video-placeholder svg { opacity: .4; }
+.video-placeholder p { font-size: 0.85rem; }
+
+/* Scanning line */
+.scan-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .3s;
+}
+.scan-line.active {
+    opacity: 1;
+    animation: scan 2s ease-in-out infinite;
+}
+@keyframes scan {
+    0%   { top: 0%; }
+    100% { top: 100%; }
+}
+
+/* Corner brackets */
+.corner-bracket {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border-color: var(--accent);
+    border-style: solid;
+    opacity: 0;
+    transition: opacity .4s;
+}
+.corner-bracket.visible { opacity: .7; }
+.corner-bracket.tl { top: 12px; left: 12px; border-width: 2px 0 0 2px; border-radius: 4px 0 0 0; }
+.corner-bracket.tr { top: 12px; right: 12px; border-width: 2px 2px 0 0; border-radius: 0 4px 0 0; }
+.corner-bracket.bl { bottom: 12px; left: 12px; border-width: 0 0 2px 2px; border-radius: 0 0 0 4px; }
+.corner-bracket.br { bottom: 12px; right: 12px; border-width: 0 2px 2px 0; border-radius: 0 0 4px 0; }
+
+/* Processing badge */
+.processing-badge {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    background: rgba(0,0,0,.75);
+    border: 1px solid var(--accent);
+    border-radius: 99px;
+    font-size: 0.7rem;
+    color: var(--accent);
+    backdrop-filter: blur(4px);
+}
+.processing-badge.show { display: flex; }
+.spinner {
+    width: 10px;
+    height: 10px;
+    border: 2px solid var(--accent-dim);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* =====================================================================
+   CONTROLS
+   ===================================================================== */
+.controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+}
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+    transition: all var(--transition);
+    cursor: pointer;
+    font-family: var(--font-sans);
+}
+.btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+.btn-primary { background: var(--accent); color: #000; border-color: var(--accent); }
+.btn-primary:hover { opacity: .88; }
+.btn-secondary { background: var(--bg-card-2); color: var(--text-primary); border-color: var(--border); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+.btn-danger { background: var(--red-dim); color: var(--red); border-color: var(--red); }
+.btn-danger:hover { background: var(--red); color: #fff; }
+.btn:disabled { opacity: .35; cursor: not-allowed; }
+
+/* Exercise selector */
+.exercise-select {
+    flex: 1;
+    min-width: 200px;
+    background: var(--bg-card-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.82rem;
+    padding: 8px 32px 8px 12px;
+    outline: none;
+    transition: border-color var(--transition);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237a8fa6' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    cursor: pointer;
+}
+.exercise-select:focus { border-color: var(--accent); }
+.exercise-select option { background: var(--bg-card-2); }
+
+/* Stats row */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 14px;
+}
+.stat-card {
+    background: var(--bg-card-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+}
+.stat-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+.stat-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+}
+.stat-value.accent { color: var(--accent); }
+.stat-value.green  { color: var(--green); }
+.stat-value.amber  { color: var(--amber); }
+
+/* =====================================================================
+   RIGHT FEEDBACK SIDEBAR
+   ===================================================================== */
+.feedback-sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+/* Score ring */
+.score-ring-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+.score-title {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+.ring-svg { position: relative; }
+.ring-svg svg { transform: rotate(-90deg); }
+.ring-track { fill: none; stroke: var(--bg-card-2); stroke-width: 8; }
+.ring-fill {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset .6s cubic-bezier(.4,0,.2,1), stroke .3s;
+}
+.ring-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.ring-score {
+    font-size: 2rem;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    line-height: 1;
+}
+.ring-label { font-size: 0.68rem; color: var(--text-secondary); margin-top: 2px; }
+.score-verdict {
+    margin-top: 12px;
+    padding: 6px 14px;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.verdict-correct    { background: var(--green-dim); color: var(--green);  border: 1px solid var(--green); }
+.verdict-correction { background: var(--amber-dim); color: var(--amber);  border: 1px solid var(--amber); }
+.verdict-idle       { background: var(--bg-card-2); color: var(--text-secondary); border: 1px solid var(--border); }
+
+/* Feedback bubble */
+.feedback-bubble {
+    position: relative;
+    background: var(--bg-card-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    transition: border-color .3s;
+}
+.feedback-bubble.correct    { border-color: var(--green); }
+.feedback-bubble.correction { border-color: var(--amber); }
+.feedback-ai-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+.ai-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: .5; transform: scale(1.4); }
+}
+#feedback-primary {
+    font-size: 0.92rem;
+    font-weight: 600;
+    line-height: 1.5;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+#feedback-detail {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+/* Corrections list */
+.corrections-list { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.correction-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+    background: var(--amber-dim);
+    border: 1px solid rgba(255,193,7,.2);
+    border-radius: 8px;
+    font-size: 0.76rem;
+    color: var(--amber);
+    line-height: 1.4;
+}
+.correction-item svg { flex-shrink: 0; margin-top: 1px; }
+
+/* Encouragement */
+.encouragement {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: var(--green-dim);
+    border: 1px solid rgba(0,230,118,.15);
+    border-radius: 8px;
+    font-size: 0.78rem;
+    color: var(--green);
+}
+
+/* Voice indicator */
+.voice-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+.voice-bars { display: flex; align-items: flex-end; gap: 2px; height: 16px; }
+.voice-bar { width: 3px; background: var(--accent); border-radius: 2px; height: 4px; transition: height .15s; }
+.voice-bars.speaking .voice-bar:nth-child(1) { animation: bar 0.6s ease-in-out infinite 0.0s; }
+.voice-bars.speaking .voice-bar:nth-child(2) { animation: bar 0.6s ease-in-out infinite 0.1s; }
+.voice-bars.speaking .voice-bar:nth-child(3) { animation: bar 0.6s ease-in-out infinite 0.2s; }
+.voice-bars.speaking .voice-bar:nth-child(4) { animation: bar 0.6s ease-in-out infinite 0.3s; }
+.voice-bars.speaking .voice-bar:nth-child(5) { animation: bar 0.6s ease-in-out infinite 0.15s; }
+@keyframes bar {
+    0%,100% { height: 4px; }
+    50%      { height: 14px; }
+}
+
+/* Interval selector */
+.interval-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.interval-label { font-size: 0.75rem; color: var(--text-secondary); }
+.interval-btn {
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-card-2);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 500;
+    transition: all var(--transition);
+    cursor: pointer;
+    font-family: var(--font-sans);
+}
+.interval-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.interval-btn:hover:not(.active) { border-color: var(--text-secondary); }
+
+/* Mute toggle */
+.mute-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 7px 9px;
+    color: var(--text-secondary);
+    transition: all var(--transition);
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+.mute-btn:hover, .mute-btn.muted { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+.mute-btn svg { width: 15px; height: 15px; }
+
+/* History log */
+.log-wrap {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+.log-body {
+    max-height: 160px;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.log-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 0.73rem;
+    animation: fadeIn .3s ease;
+}
+.log-item.ok  { background: var(--green-dim); color: var(--green); }
+.log-item.bad { background: var(--amber-dim); color: var(--amber); }
+.log-time { font-family: var(--font-mono); opacity: .7; flex-shrink: 0; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+
+/* =====================================================================
+   POSTURE ZONE PANEL
+   ===================================================================== */
+.posture-panel {
+    display: none;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+.posture-panel.visible { display: block; }
+.posture-body-diagram {
+    display: flex;
+    gap: 14px;
+    padding: 16px;
+    align-items: flex-start;
+}
+.body-svg-wrap {
+    flex-shrink: 0;
+    position: relative;
+}
+.body-svg-wrap svg { width: 80px; height: auto; }
+.zone-dot {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid #000;
+    transform: translate(-50%, -50%);
+    transition: background .4s, box-shadow .4s;
+    cursor: default;
+}
+.zone-dot.ok   { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.zone-dot.warn { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+.zone-dot.poor { background: var(--red);   box-shadow: 0 0 6px var(--red); }
+.zone-dot.idle { background: var(--text-muted); box-shadow: none; }
+.zone-list { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.zone-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    background: var(--bg-card-2);
+    border: 1px solid var(--border);
+    transition: border-color .3s;
+}
+.zone-row.ok   { border-color: rgba(0,230,118,.3); }
+.zone-row.warn { border-color: rgba(255,193,7,.3); }
+.zone-row.poor { border-color: rgba(255,71,87,.3); }
+.zone-indicator { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--text-muted); transition: background .4s; }
+.zone-row.ok   .zone-indicator { background: var(--green); }
+.zone-row.warn .zone-indicator { background: var(--amber); }
+.zone-row.poor .zone-indicator { background: var(--red); }
+.zone-info { flex: 1; min-width: 0; }
+.zone-name { font-size: 0.74rem; font-weight: 600; color: var(--text-primary); }
+.zone-note { font-size: 0.68rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+.zone-score-badge {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 5px;
+    background: var(--bg-base);
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    transition: color .3s;
+}
+.zone-row.ok   .zone-score-badge { color: var(--green); }
+.zone-row.warn .zone-score-badge { color: var(--amber); }
+.zone-row.poor .zone-score-badge { color: var(--red); }
+.posture-tip {
+    margin: 0 14px 14px;
+    padding: 9px 12px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(0,198,255,.2);
+    border-radius: 8px;
+    font-size: 0.73rem;
+    color: var(--accent);
+    display: none;
+    align-items: flex-start;
+    gap: 7px;
+    line-height: 1.5;
+}
+.posture-tip.show { display: flex; }
+.posture-tip svg { flex-shrink: 0; margin-top: 1px; }
+
+/* Dark mode compat from auth-sidebar.js */
+body.dark .user-info strong { color: white; }
+    </style>
+</head>
+<body>
+
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar">
+        <a href="credits.html" class="brand" style="text-decoration:none; color:inherit; cursor:pointer;">
+            <span class="logo-icon"><img src="logo.png" alt="logo img"></span>
+            <h2>Sehat Saathi</h2>
+        </a>
+        <nav class="nav-menu">
+            <a href="index.html" class="nav-item">🏠 Home</a>
+            <a href="triage.html" class="nav-item">🩺 Triage &amp; Check</a>
+            <a href="doctor.html" class="nav-item">👨‍⚕️ Find Doctor</a>
+            <a href="appointments.html" class="nav-item">📅 My Appointments</a>
+            <a href="records.html" class="nav-item">📄 My Records</a>
+            <a href="medicines.html" class="nav-item">💊 Medicine Info</a>
+            <a href="rehab.html" class="nav-item active">🏋️ Rehab Monitor</a>
+            <a href="report-analyzer.html" class="nav-item">🔬 Report Analyzer</a>
+            <a href="diet.html" class="nav-item">🥗 Diet Plan</a>
+            <button class="btn-nav-ai" onclick="location.href='askai.html'">✨ Ask AI Assistant</button>
+        </nav>
+
+        <button class="btn-emergency" onclick="location.href='emergency.html'">
+            <span>⚠️</span> Emergency 108
+        </button>
+        <div class="user-profile">
+            <div class="avatar"></div>
+            <div class="user-info">
+                <strong>Guest User</strong>
+                <span>Settings &amp; Language</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ===== MAIN ===== -->
+    <main class="main-content">
+
+        <!-- PhysioAI Top Bar -->
+        <header class="app-header">
+            <div class="physio-logo">
+                <div class="physio-logo-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M4.5 12.5c0-4.142 3.358-7.5 7.5-7.5s7.5 3.358 7.5 7.5"/>
+                        <circle cx="12" cy="15" r="3"/>
+                        <path d="M12 12V8"/>
+                    </svg>
+                </div>
+                PhysioAI — Rehab Monitor
+            </div>
+            <div class="header-status">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">Camera off</span>
+            </div>
+        </header>
+
+        <!-- Two-column tracker grid -->
+        <div class="main-grid">
+
+            <!-- ---- LEFT: Camera + Controls ---- -->
+            <section>
+                <div class="p-card">
+                    <div class="p-card-header">
+                        <span class="p-card-title">Live Camera Feed</span>
+                        <div class="interval-row">
+                            <span class="interval-label">Analyse every:</span>
+                            <button class="interval-btn" data-ms="2000">2s</button>
+                            <button class="interval-btn active" data-ms="4000">4s</button>
+                            <button class="interval-btn" data-ms="6000">6s</button>
+                            <button class="interval-btn" data-ms="10000">10s</button>
+                            <button class="mute-btn" id="mute-btn" title="Toggle voice feedback">
+                                <svg id="mute-icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                                </svg>
+                                <svg id="mute-icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                                    <line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-card-body">
+
+                        <!-- Video wrapper -->
+                        <div class="video-wrapper">
+                            <video id="webcam" autoplay muted playsinline></video>
+                            <canvas id="canvas-overlay"></canvas>
+                            <canvas id="capture-canvas" style="display:none;"></canvas>
+
+                            <div class="video-placeholder" id="video-placeholder">
+                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.87v6.26a1 1 0 0 1-1.447.894L15 14M3 8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"/>
+                                </svg>
+                                <p>Camera not started</p>
+                            </div>
+
+                            <div class="scan-line" id="scan-line"></div>
+                            <div class="corner-bracket tl" id="cb-tl"></div>
+                            <div class="corner-bracket tr" id="cb-tr"></div>
+                            <div class="corner-bracket bl" id="cb-bl"></div>
+                            <div class="corner-bracket br" id="cb-br"></div>
+                            <div class="processing-badge" id="processing-badge">
+                                <div class="spinner"></div>Analysing…
+                            </div>
+                        </div>
+
+                        <!-- Controls -->
+                        <div class="controls">
+                            <select class="exercise-select" id="exercise-select">
+                                <option value="straight_leg_raise">Straight Leg Raise</option>
+                                <option value="heel_slide">Heel Slide</option>
+                                <option value="terminal_knee_extension">Terminal Knee Extension</option>
+                                <option value="wall_slide">Wall Slide (Mini Squat)</option>
+                                <option value="clamshell">Clamshell</option>
+                                <option value="sitting_posture">Sitting Posture Assessment</option>
+                            </select>
+                            <button class="btn btn-primary" id="start-btn" onclick="startSession()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="5 3 19 12 5 21 5 3"/>
+                                </svg>
+                                Start Session
+                            </button>
+                            <button class="btn btn-danger" id="stop-btn" onclick="stopSession()" disabled>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                </svg>
+                                Stop
+                            </button>
+                        </div>
+
+                        <!-- Stats row -->
+                        <div class="stats-row">
+                            <div class="stat-card">
+                                <div class="stat-label">Reps</div>
+                                <div class="stat-value accent" id="stat-reps">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Avg Score</div>
+                                <div class="stat-value green" id="stat-avg">—</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Analyses</div>
+                                <div class="stat-value" id="stat-analyses">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Duration</div>
+                                <div class="stat-value amber" id="stat-time">0:00</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            <!-- ---- RIGHT: Feedback Panel ---- -->
+            <aside class="feedback-sidebar">
+
+                <!-- Score ring -->
+                <div class="score-ring-wrap">
+                    <div class="score-title">Form Quality Score</div>
+                    <div class="ring-svg" style="position:relative;width:120px;height:120px;">
+                        <svg width="120" height="120" viewBox="0 0 120 120">
+                            <circle class="ring-track" cx="60" cy="60" r="52"/>
+                            <circle class="ring-fill" id="ring-fill"
+                                cx="60" cy="60" r="52"
+                                stroke-dasharray="326.7"
+                                stroke-dashoffset="326.7"/>
+                        </svg>
+                        <div class="ring-center">
+                            <div class="ring-score" id="ring-score">—</div>
+                            <div class="ring-label">/ 100</div>
+                        </div>
+                    </div>
+                    <div class="score-verdict verdict-idle" id="score-verdict">Waiting to start</div>
+                </div>
+
+                <!-- Feedback bubble -->
+                <div class="feedback-bubble" id="feedback-bubble">
+                    <div class="feedback-ai-label">
+                        <div class="ai-dot"></div>
+                        AI Coach Feedback
+                    </div>
+                    <div id="feedback-primary">Start a session and perform your exercise in front of the camera.</div>
+                    <div id="feedback-detail"></div>
+                    <div class="corrections-list" id="corrections-list"></div>
+                    <div class="encouragement" id="encouragement" style="display:none">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                        </svg>
+                        <span id="encouragement-text"></span>
+                    </div>
+                </div>
+
+                <!-- Voice indicator -->
+                <div class="voice-indicator">
+                    <div class="voice-bars" id="voice-bars">
+                        <div class="voice-bar"></div>
+                        <div class="voice-bar"></div>
+                        <div class="voice-bar"></div>
+                        <div class="voice-bar"></div>
+                        <div class="voice-bar"></div>
+                    </div>
+                    <span id="voice-status">Voice feedback ready</span>
+                </div>
+
+                <!-- Posture zone panel -->
+                <div class="posture-panel" id="posture-panel">
+                    <div class="p-card-header">
+                        <span class="p-card-title">Posture Zone Breakdown</span>
+                        <span id="posture-overall-badge" style="font-size:.72rem;padding:3px 9px;border-radius:99px;background:var(--bg-card-2);color:var(--text-secondary);border:1px solid var(--border);">Waiting</span>
+                    </div>
+                    <div class="posture-body-diagram">
+                        <div class="body-svg-wrap" id="body-svg-wrap">
+                            <svg viewBox="0 0 80 160" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <rect x="8"  y="100" width="64" height="5"  rx="2" fill="#1e2a3a"/>
+                                <rect x="8"  y="105" width="5"  height="50" rx="2" fill="#1e2a3a"/>
+                                <rect x="67" y="105" width="5"  height="50" rx="2" fill="#1e2a3a"/>
+                                <rect x="68" y="58"  width="5"  height="47" rx="2" fill="#1e2a3a"/>
+                                <rect x="26" y="62" width="28" height="38" rx="6" fill="#2a3a50"/>
+                                <circle cx="40" cy="48" r="14" fill="#2a3a50"/>
+                                <rect x="35" y="60" width="10" height="6" rx="2" fill="#2a3a50"/>
+                                <rect x="14" y="64" width="12" height="24" rx="5" fill="#2a3a50"/>
+                                <rect x="54" y="64" width="12" height="24" rx="5" fill="#2a3a50"/>
+                                <rect x="14" y="88" width="12" height="18" rx="5" fill="#243040"/>
+                                <rect x="54" y="88" width="12" height="18" rx="5" fill="#243040"/>
+                                <rect x="18" y="99" width="20" height="12" rx="4" fill="#2a3a50"/>
+                                <rect x="42" y="99" width="20" height="12" rx="4" fill="#2a3a50"/>
+                                <rect x="18" y="110" width="10" height="28" rx="4" fill="#243040"/>
+                                <rect x="52" y="110" width="10" height="28" rx="4" fill="#243040"/>
+                                <rect x="14" y="136" width="18" height="8"  rx="3" fill="#2a3a50"/>
+                                <rect x="48" y="136" width="18" height="8"  rx="3" fill="#2a3a50"/>
+                                <line x1="40" y1="62" x2="40" y2="100" stroke="#1e2a3a" stroke-width="1.5" stroke-dasharray="3,3"/>
+                            </svg>
+                            <div class="zone-dot idle" id="dot-head_neck"   title="Head &amp; Neck"   style="left:50%;top:30%"></div>
+                            <div class="zone-dot idle" id="dot-shoulders"   title="Shoulders"         style="left:24%;top:42%"></div>
+                            <div class="zone-dot idle" id="dot-thoracic"    title="Upper Back"        style="left:76%;top:52%"></div>
+                            <div class="zone-dot idle" id="dot-lumbar"      title="Lower Back"        style="left:76%;top:65%"></div>
+                            <div class="zone-dot idle" id="dot-hips_pelvis" title="Hips &amp; Pelvis" style="left:50%;top:72%"></div>
+                            <div class="zone-dot idle" id="dot-knees_feet"  title="Knees &amp; Feet"  style="left:50%;top:88%"></div>
+                        </div>
+                        <div class="zone-list" id="zone-list">
+                            <div class="zone-row" id="zone-head_neck">
+                                <div class="zone-indicator"></div>
+                                <div class="zone-info">
+                                    <div class="zone-name">Head &amp; Neck</div>
+                                    <div class="zone-note" id="note-head_neck">Awaiting analysis</div>
+                                </div>
+                                <div class="zone-score-badge" id="score-head_neck">—</div>
+                            </div>
+                            <div class="zone-row" id="zone-shoulders">
+                                <div class="zone-indicator"></div>
+                                <div class="zone-info">
+                                    <div class="zone-name">Shoulders</div>
+                                    <div class="zone-note" id="note-shoulders">Awaiting analysis</div>
+                                </div>
+                                <div class="zone-score-badge" id="score-shoulders">—</div>
+                            </div>
+                            <div class="zone-row" id="zone-thoracic">
+                                <div class="zone-indicator"></div>
+                                <div class="zone-info">
+                                    <div class="zone-name">Upper Back</div>
+                                    <div class="zone-note" id="note-thoracic">Awaiting analysis</div>
+                                </div>
+                                <div class="zone-score-badge" id="score-thoracic">—</div>
+                            </div>
+                            <div class="zone-row" id="zone-lumbar">
+                                <div class="zone-indicator"></div>
+                                <div class="zone-info">
+                                    <div class="zone-name">Lower Back</div>
+                                    <div class="zone-note" id="note-lumbar">Awaiting analysis</div>
+                                </div>
+                                <div class="zone-score-badge" id="score-lumbar">—</div>
+                            </div>
+                            <div class="zone-row" id="zone-hips_pelvis">
+                                <div class="zone-indicator"></div>
+                                <div class="zone-info">
+                                    <div class="zone-name">Hips &amp; Pelvis</div>
+                                    <div class="zone-note" id="note-hips_pelvis">Awaiting analysis</div>
+                                </div>
+                                <div class="zone-score-badge" id="score-hips_pelvis">—</div>
+                            </div>
+                            <div class="zone-row" id="zone-knees_feet">
+                                <div class="zone-indicator"></div>
+                                <div class="zone-info">
+                                    <div class="zone-name">Knees &amp; Feet</div>
+                                    <div class="zone-note" id="note-knees_feet">Awaiting analysis</div>
+                                </div>
+                                <div class="zone-score-badge" id="score-knees_feet">—</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="posture-tip" id="posture-tip">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <span id="posture-tip-text"></span>
+                    </div>
+                </div>
+
+                <!-- Feedback history log -->
+                <div class="log-wrap">
+                    <div class="p-card-header">
+                        <span class="p-card-title">Session Log</span>
+                        <button class="btn btn-secondary" style="padding:4px 10px;font-size:.72rem;" onclick="clearLog()">Clear</button>
+                    </div>
+                    <div class="log-body" id="log-body">
+                        <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:.78rem;">
+                            Analysis history will appear here
+                        </div>
+                    </div>
+                </div>
+
+            </aside>
+        </div><!-- /.main-grid -->
+    </main>
+
+    <script src="auth-sidebar.js"></script>
+
+    <script>
+    // ---------------------------------------------------------------
+    // State
+    // ---------------------------------------------------------------
+    let stream        = null;
+    let analyzeTimer  = null;
+    let timerInterval = null;
+    let sessionStart  = null;
+    let analysisCount = 0;
+    let repCount      = 0;
+    let scores        = [];
+    let analyzeMs     = 4000;
+    let isMuted       = false;
+    let isProcessing  = false;
+    const backendUrl  = '/api/rehab';
+    let synth         = window.speechSynthesis;
+
+    // ---------------------------------------------------------------
+    // Interval buttons
+    // ---------------------------------------------------------------
+    document.querySelectorAll('.interval-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.interval-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            analyzeMs = parseInt(btn.dataset.ms);
+            if (analyzeTimer) resetAnalyzeTimer();
+        });
+    });
+
+    // ---------------------------------------------------------------
+    // Mute toggle
+    // ---------------------------------------------------------------
+    document.getElementById('mute-btn').addEventListener('click', () => {
+        isMuted = !isMuted;
+        const btn = document.getElementById('mute-btn');
+        btn.classList.toggle('muted', isMuted);
+        document.getElementById('mute-icon-on').style.display  = isMuted ? 'none' : '';
+        document.getElementById('mute-icon-off').style.display = isMuted ? '' : 'none';
+        if (isMuted && synth) synth.cancel();
+    });
+
+    // ---------------------------------------------------------------
+    // Session start / stop
+    // ---------------------------------------------------------------
+    async function startSession() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+                audio: false,
+            });
+        } catch (err) {
+            alert('Camera access denied: ' + err.message);
+            return;
+        }
+
+        const video = document.getElementById('webcam');
+        video.srcObject = stream;
+        await video.play();
+
+        document.getElementById('video-placeholder').style.display = 'none';
+        setStatus('live', 'Session live');
+        showBrackets(true);
+        document.getElementById('start-btn').disabled = true;
+        document.getElementById('stop-btn').disabled  = false;
+        document.getElementById('exercise-select').disabled = true;
+
+        sessionStart  = Date.now();
+        analysisCount = 0; repCount = 0; scores = [];
+        updateStats();
+
+        timerInterval = setInterval(updateTimer, 1000);
+        scheduleAnalysis();
+
+        speak(`Starting ${getExerciseName()}. Get into position and begin your exercise.`);
+    }
+
+    function stopSession() {
+        if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+        clearTimeout(analyzeTimer); analyzeTimer = null;
+        clearInterval(timerInterval); timerInterval = null;
+
+        const video = document.getElementById('webcam');
+        video.srcObject = null;
+
+        document.getElementById('video-placeholder').style.display = 'flex';
+        setStatus('', 'Camera off');
+        showBrackets(false);
+        document.getElementById('scan-line').classList.remove('active');
+        document.getElementById('start-btn').disabled = false;
+        document.getElementById('stop-btn').disabled  = true;
+        document.getElementById('exercise-select').disabled = false;
+
+        speak('Session ended. Great work today!');
+    }
+
+    // ---------------------------------------------------------------
+    // Analysis loop
+    // ---------------------------------------------------------------
+    function scheduleAnalysis() {
+        analyzeTimer = setTimeout(async () => {
+            if (!stream) return;
+            await analyzeFrame();
+            scheduleAnalysis();
+        }, analyzeMs);
+    }
+
+    function resetAnalyzeTimer() {
+        clearTimeout(analyzeTimer);
+        if (stream) scheduleAnalysis();
+    }
+
+    async function analyzeFrame() {
+        if (isProcessing) return;
+        isProcessing = true;
+
+        const video   = document.getElementById('webcam');
+        const canvas  = document.getElementById('capture-canvas');
+        canvas.width  = video.videoWidth  || 640;
+        canvas.height = video.videoHeight || 480;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0);
+        const frameB64 = canvas.toDataURL('image/jpeg', 0.85);
+
+        document.getElementById('processing-badge').classList.add('show');
+        document.getElementById('scan-line').classList.add('active');
+
+        const exerciseId = document.getElementById('exercise-select').value;
+        const elapsed    = sessionStart ? (Date.now() - sessionStart) / 1000 : 0;
+
+        try {
+            const resp = await fetch(`${backendUrl}/analyze`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    frame_base64:       frameB64,
+                    exercise_id:        exerciseId,
+                    rep_count:          repCount,
+                    session_duration_s: elapsed,
+                }),
+            });
+
+            if (!resp.ok) {
+                const err = await resp.json();
+                throw new Error(err.detail || resp.statusText);
+            }
+
+            const data = await resp.json();
+            handleFeedback(data);
+        } catch (err) {
+            logEntry('Connection error: ' + err.message, 'bad');
+            setStatus('error', 'API error');
+            console.error('[PhysioAI]', err);
+        } finally {
+            isProcessing = false;
+            document.getElementById('processing-badge').classList.remove('show');
+            document.getElementById('scan-line').classList.remove('active');
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // Handle feedback from API
+    // ---------------------------------------------------------------
+    function handleFeedback(data) {
+        analysisCount++;
+        scores.push(data.score);
+        if (data.status === 'correct') repCount++;
+
+        updateStats();
+        updateScore(data.score, data.status);
+        updateFeedbackBubble(data);
+        logEntry(data.primary_feedback, data.status === 'correct' ? 'ok' : 'bad');
+        speak(data.primary_feedback);
+
+        if (data.zone_scores) {
+            updatePostureZones(data.zone_scores, data.primary_feedback);
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // UI updates
+    // ---------------------------------------------------------------
+    function updateScore(score, status) {
+        const circumference = 2 * Math.PI * 52;
+        const offset = circumference - (score / 100) * circumference;
+        const ring = document.getElementById('ring-fill');
+        ring.style.strokeDashoffset = offset;
+
+        if (score >= 80)      ring.style.stroke = 'var(--green)';
+        else if (score >= 55) ring.style.stroke = 'var(--amber)';
+        else                  ring.style.stroke = 'var(--red)';
+
+        document.getElementById('ring-score').textContent = score;
+
+        const verdict = document.getElementById('score-verdict');
+        if (status === 'correct') {
+            verdict.textContent = 'Good Form ✓';
+            verdict.className   = 'score-verdict verdict-correct';
+        } else {
+            verdict.textContent = 'Needs Correction';
+            verdict.className   = 'score-verdict verdict-correction';
+        }
+    }
+
+    function updateFeedbackBubble(data) {
+        const bubble = document.getElementById('feedback-bubble');
+        bubble.className = 'feedback-bubble ' + (data.status === 'correct' ? 'correct' : 'correction');
+
+        document.getElementById('feedback-primary').textContent = data.primary_feedback;
+        document.getElementById('feedback-detail').textContent  = data.detail;
+
+        const list = document.getElementById('corrections-list');
+        list.innerHTML = '';
+        if (data.corrections && data.corrections.length > 0) {
+            data.corrections.forEach(c => {
+                const item = document.createElement('div');
+                item.className = 'correction-item';
+                item.innerHTML = `
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    ${c}`;
+                list.appendChild(item);
+            });
+        }
+
+        const enc = document.getElementById('encouragement');
+        if (data.encouragement) {
+            document.getElementById('encouragement-text').textContent = data.encouragement;
+            enc.style.display = 'flex';
+        } else {
+            enc.style.display = 'none';
+        }
+    }
+
+    function updateStats() {
+        document.getElementById('stat-reps').textContent     = repCount;
+        document.getElementById('stat-analyses').textContent = analysisCount;
+        if (scores.length > 0) {
+            const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+            document.getElementById('stat-avg').textContent = avg;
+        }
+    }
+
+    function updateTimer() {
+        if (!sessionStart) return;
+        const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
+        const m = Math.floor(elapsed / 60);
+        const s = (elapsed % 60).toString().padStart(2, '0');
+        document.getElementById('stat-time').textContent = `${m}:${s}`;
+    }
+
+    // ---------------------------------------------------------------
+    // Session log
+    // ---------------------------------------------------------------
+    function logEntry(text, type) {
+        const body = document.getElementById('log-body');
+        const placeholder = body.querySelector('div[style]');
+        if (placeholder) placeholder.remove();
+
+        const now = new Date();
+        const ts  = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+
+        const item = document.createElement('div');
+        item.className = `log-item ${type}`;
+        item.innerHTML = `<span class="log-time">${ts}</span>${text}`;
+        body.appendChild(item);
+        body.scrollTop = body.scrollHeight;
+    }
+
+    function clearLog() {
+        document.getElementById('log-body').innerHTML = `
+            <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:.78rem;">
+                Analysis history will appear here
+            </div>`;
+    }
+
+    // ---------------------------------------------------------------
+    // Voice TTS
+    // ---------------------------------------------------------------
+    function speak(text) {
+        if (isMuted || !synth || !text) return;
+        synth.cancel();
+        const utt = new SpeechSynthesisUtterance(text);
+        utt.rate = 1.0; utt.pitch = 1.0; utt.volume = 1.0;
+        const voices = synth.getVoices();
+        const pref = voices.find(v => v.lang.startsWith('en') && v.localService) || voices.find(v => v.lang.startsWith('en'));
+        if (pref) utt.voice = pref;
+
+        const bars   = document.getElementById('voice-bars');
+        const status = document.getElementById('voice-status');
+        utt.onstart = () => { bars.classList.add('speaking'); status.textContent = 'Speaking…'; };
+        utt.onend = utt.onerror = () => { bars.classList.remove('speaking'); status.textContent = 'Voice feedback ready'; };
+        synth.speak(utt);
+    }
+    if (synth.onvoiceschanged !== undefined) { synth.onvoiceschanged = () => {}; }
+
+    // ---------------------------------------------------------------
+    // Status / helpers
+    // ---------------------------------------------------------------
+    function setStatus(type, text) {
+        document.getElementById('status-dot').className = 'status-dot ' + type;
+        document.getElementById('status-text').textContent = text;
+    }
+
+    function showBrackets(show) {
+        ['cb-tl','cb-tr','cb-bl','cb-br'].forEach(id => {
+            document.getElementById(id).classList.toggle('visible', show);
+        });
+    }
+
+    function getExerciseName() {
+        const sel = document.getElementById('exercise-select');
+        return sel.options[sel.selectedIndex].text;
+    }
+
+    // ---------------------------------------------------------------
+    // Load exercise list from backend (graceful fallback)
+    // ---------------------------------------------------------------
+    async function loadExercises() {
+        try {
+            const resp = await fetch(`${backendUrl}/exercises`);
+            if (!resp.ok) return;
+            const exercises = await resp.json();
+            const sel = document.getElementById('exercise-select');
+            sel.innerHTML = '';
+            exercises.forEach(ex => {
+                const opt = document.createElement('option');
+                opt.value       = ex.id;
+                opt.textContent = ex.name;
+                sel.appendChild(opt);
+            });
+        } catch (_) {
+            // backend not reachable — static options remain
+        }
+    }
+    loadExercises();
+
+    // ---------------------------------------------------------------
+    // Posture zone panel
+    // ---------------------------------------------------------------
+    const POSTURE_EXERCISE_ID = 'sitting_posture';
+    const ZONE_IDS = ['head_neck', 'shoulders', 'thoracic', 'lumbar', 'hips_pelvis', 'knees_feet'];
+
+    function syncPosturePanel() {
+        const isPosture = document.getElementById('exercise-select').value === POSTURE_EXERCISE_ID;
+        document.getElementById('posture-panel').classList.toggle('visible', isPosture);
+        if (!isPosture) resetPostureZones();
+    }
+    document.getElementById('exercise-select').addEventListener('change', syncPosturePanel);
+    syncPosturePanel();
+
+    function resetPostureZones() {
+        ZONE_IDS.forEach(id => {
+            const row = document.getElementById('zone-' + id);
+            if (row) row.className = 'zone-row';
+            const dot = document.getElementById('dot-' + id);
+            if (dot) dot.className = 'zone-dot idle';
+            const scoreEl = document.getElementById('score-' + id);
+            if (scoreEl) scoreEl.textContent = '—';
+            const noteEl = document.getElementById('note-' + id);
+            if (noteEl) noteEl.textContent = 'Awaiting analysis';
+        });
+        const badge = document.getElementById('posture-overall-badge');
+        if (badge) {
+            badge.textContent = 'Waiting';
+            badge.style.cssText = '';
+        }
+        const tip = document.getElementById('posture-tip');
+        if (tip) tip.classList.remove('show');
+    }
+
+    function updatePostureZones(zoneScores, primaryFeedback) {
+        ZONE_IDS.forEach(id => {
+            const zData = zoneScores[id];
+            if (!zData) return;
+            const status = zData.status || (zData.score >= 80 ? 'ok' : zData.score >= 50 ? 'warn' : 'poor');
+            const score  = zData.score ?? '—';
+            const note   = zData.note  || '';
+            const row = document.getElementById('zone-' + id);
+            if (row) row.className = 'zone-row ' + status;
+            const dot = document.getElementById('dot-' + id);
+            if (dot) dot.className = 'zone-dot ' + status;
+            const scoreEl = document.getElementById('score-' + id);
+            if (scoreEl) scoreEl.textContent = score;
+            const noteEl = document.getElementById('note-' + id);
+            if (noteEl) noteEl.textContent = note;
+        });
+
+        const allScores = ZONE_IDS.map(id => (zoneScores[id] && zoneScores[id].score) ?? null).filter(s => s !== null);
+        const avg = allScores.length ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) : null;
+        const badge = document.getElementById('posture-overall-badge');
+        if (badge && avg !== null) {
+            const sc = avg >= 80 ? 'ok' : avg >= 55 ? 'warn' : 'poor';
+            const colorMap = {
+                ok:   { bg: 'var(--green-dim)', color: 'var(--green)', border: 'var(--green)' },
+                warn: { bg: 'var(--amber-dim)', color: 'var(--amber)', border: 'var(--amber)' },
+                poor: { bg: 'var(--red-dim)',   color: 'var(--red)',   border: 'var(--red)'   },
+            };
+            badge.textContent       = avg >= 80 ? 'Good Posture' : avg >= 55 ? 'Needs Work' : 'Poor Posture';
+            badge.style.background  = colorMap[sc].bg;
+            badge.style.color       = colorMap[sc].color;
+            badge.style.borderColor = colorMap[sc].border;
+        }
+
+        const tip = document.getElementById('posture-tip');
+        const tipText = document.getElementById('posture-tip-text');
+        if (tip && tipText && primaryFeedback) {
+            tipText.textContent = primaryFeedback;
+            tip.classList.add('show');
+        }
+    }
+    </script>
+</body>
+</html>
