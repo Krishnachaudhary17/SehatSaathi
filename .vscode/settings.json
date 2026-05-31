@@ -1,0 +1,10 @@
+{
+    "python.defaultInterpreterPath": "d:\\CODES\\SehatSaathiV2Copy\\backend\\venv\\Scripts\\python.exe",
+    "python.analysis.extraPaths": [
+        "d:\\CODES\\SehatSaathiV2Copy\\backend"
+    ],
+    "python.analysis.typeCheckingMode": "off",
+    "python.analysis.diagnosticMode": "off",
+    "python.languageServer": "Pylance",
+    "python.analysis.ignore": ["**"]
+}

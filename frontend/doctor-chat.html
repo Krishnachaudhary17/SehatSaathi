@@ -49,7 +49,10 @@
         <strong id="ct-name">Patient</strong>
         <span id="ct-sub">Appointment</span>
       </div>
-      <button class="btn-action" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#10b981;" onclick="openRxModal()">📋 Prescription</button>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-action" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#10b981;" onclick="openRxModal()">📋 Prescription</button>
+        <button class="btn-action" style="background:rgba(14,165,233,.15);border:1px solid rgba(14,165,233,.3);color:#0ea5e9;" onclick="openReportModal()">📄 Upload Report</button>
+      </div>
     </div>
     <div class="messages-area" id="messages-area"></div>
     <div class="input-area">
@@ -80,6 +83,21 @@
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeRxModal()">Cancel</button>
       <button class="btn-issue" onclick="issueRx()">✅ Issue Prescription</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Report Modal ── -->
+<div class="modal-bg" id="report-modal">
+  <div class="modal">
+    <h3>📄 Share Medical Report</h3>
+    <p class="modal-sub" id="report-patient-label">For: Patient</p>
+    <div class="form-group"><label>Report Title</label><input type="text" id="report-name" placeholder="e.g. Blood Test Report"></div>
+    <div class="form-group"><label>Type</label><select id="report-type"><option value="lab">Lab Result</option><option value="scan">Scan/Imaging</option><option value="other">Other</option></select></div>
+    <div class="form-group"><label>File (PDF/Image)</label><input type="file" id="report-file"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeReportModal()">Cancel</button>
+      <button class="btn-issue" onclick="submitReport()">✅ Share Report</button>
     </div>
   </div>
 </div>
@@ -124,6 +142,7 @@ if (ROLE !== 'doctor') window.location.href = 'index.html';
 // ── State ─────────────────────────────────────────────────
 let allConvs = [];
 let activeApptId = null;
+let activePatientId = null;
 let pollTimer = null;
 
 // ── Load Conversations ────────────────────────────────────
@@ -150,7 +169,7 @@ function renderConvList(list) {
     const initial = (c.patient_name || 'P').charAt(0).toUpperCase();
     const statusCls = 'status-' + (c.status || 'confirmed').toLowerCase();
     const isActive = c.appt_id === activeApptId;
-    return `<div class="conv-item${isActive ? ' active' : ''}" onclick="openConv('${c.appt_id}','${c.patient_name}','${c.appt_date}','${c.specialty}','${c.status}')">
+    return `<div class="conv-item${isActive ? ' active' : ''}" onclick="openConv('${c.appt_id}','${c.patient_id}','${c.patient_name}','${c.appt_date}','${c.specialty}','${c.status}')">
       <div class="conv-avatar">${initial}</div>
       <div class="conv-info">
         <div class="conv-name">${c.patient_name}</div>
@@ -167,8 +186,9 @@ function filterConvs() {
 }
 
 // ── Open Conversation ─────────────────────────────────────
-function openConv(apptId, patientName, apptDate, specialty, status) {
+function openConv(apptId, patientId, patientName, apptDate, specialty, status) {
   activeApptId = apptId;
+  activePatientId = patientId;
   renderConvList(allConvs.filter(c => {
     const q = document.getElementById('search-input').value.toLowerCase();
     return (c.patient_name || '').toLowerCase().includes(q);
@@ -456,6 +476,52 @@ function toast(msg) {
 // ── Close modals on backdrop click ───────────────────────
 document.getElementById('rx-modal').addEventListener('click', e => { if (e.target === document.getElementById('rx-modal')) closeRxModal(); });
 document.getElementById('profile-modal').addEventListener('click', e => { if (e.target === document.getElementById('profile-modal')) closeProfileModal(); });
+document.getElementById('report-modal').addEventListener('click', e => { if (e.target === document.getElementById('report-modal')) closeReportModal(); });
+
+// ── Upload Report ─────────────────────────────────────────
+function openReportModal() {
+  if (!activePatientId) { toast('⚠️ Select a patient first.'); return; }
+  document.getElementById('report-name').value = '';
+  document.getElementById('report-file').value = '';
+  document.getElementById('report-patient-label').textContent = `For: ${document.getElementById('ct-name').textContent}`;
+  document.getElementById('report-modal').classList.add('open');
+}
+function closeReportModal() { document.getElementById('report-modal').classList.remove('open'); }
+
+async function submitReport() {
+  const name = document.getElementById('report-name').value.trim();
+  const type = document.getElementById('report-type').value;
+  const fileInput = document.getElementById('report-file');
+  if (!name) { toast('⚠️ Please provide a report title.'); return; }
+
+  const formData = new FormData();
+  formData.append("name", name);
+  formData.append("type", type);
+  formData.append("record_date", new Date().toISOString().split('T')[0]);
+  if (fileInput.files[0]) {
+    formData.append("file", fileInput.files[0]);
+  }
+
+  try {
+    const res = await fetch(`/api/records/doctor/${activePatientId}`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${TOKEN}` },
+      body: formData
+    });
+    if (res.ok) {
+      toast('✅ Report successfully shared with patient!');
+      closeReportModal();
+      // Optionally send a chat message notifying the patient
+      fetch(`/api/messages/${activeApptId}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: `📄 A new medical report (${name}) has been uploaded to your Medical Records.`, message_type: 'text' })
+      }).then(() => loadMessages());
+    } else {
+      toast('⚠️ Failed to upload report.');
+    }
+  } catch(e) { toast('⚠️ Connection error'); }
+}
 
 // ── Boot ──────────────────────────────────────────────────
 loadConversations();

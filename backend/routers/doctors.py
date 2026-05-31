@@ -96,6 +96,7 @@ async def get_my_conversations(
     return [
         {
             "appt_id": str(a.id),
+            "patient_id": str(a.user_id) if a.user_id else None,
             "patient_name": patient_map.get(a.user_id, {}).get("name", "Unknown Patient"),
             "patient_email": patient_map.get(a.user_id, {}).get("email", ""),
             "appt_date": str(a.appt_date),

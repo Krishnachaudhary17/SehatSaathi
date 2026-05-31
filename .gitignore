@@ -1,47 +1,22 @@
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-.Python
-*.egg
-*.egg-info/
-dist/
-build/
-*.whl
-
-# Virtual environment
+# Python environments
 venv/
 env/
 .venv/
-.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
 # Environment variables
 .env
-*.env
-.env.local
 
-# Database
-*.db
-*.sqlite3
+# Local database
+database.db
 
-# Uploads
+# User Uploads
 backend/uploads/
+uploads/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# macOS
+# OS Files
 .DS_Store
-
-# Logs
-*.log
-
-# Migration scripts (optional - keep if needed)
-# alter_db*.py
-
-# Byte-compiled
-*.pyc
+Thumbs.db

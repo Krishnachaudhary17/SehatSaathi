@@ -107,3 +107,62 @@ async def delete_record(
 
     await db.delete(record)
     await db.commit()
+
+
+@router.post("/doctor/{patient_id}", response_model=RecordOut, status_code=201)
+async def upload_doctor_record(
+    patient_id: uuid.UUID,
+    name: str = Form(...),
+    type: str = Form(...),
+    record_date: str = Form(None),
+    file: UploadFile = File(None),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role != "doctor":
+        raise HTTPException(status_code=403, detail="Only doctors can upload records here.")
+
+    # Get the doctor's name from their Doctor profile
+    from models import Doctor
+    result = await db.execute(select(Doctor).where(Doctor.user_id == current_user.id))
+    doc_profile = result.scalar_one_or_none()
+    doctor_name = doc_profile.name if doc_profile else f"Dr. {current_user.name}"
+
+    # Check if patient exists
+    patient_res = await db.execute(select(User).where(User.id == patient_id))
+    if not patient_res.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Patient not found.")
+
+    # Save file if provided
+    file_path = None
+    if file and file.filename:
+        ext = os.path.splitext(file.filename)[1]
+        filename = f"{uuid.uuid4()}{ext}"
+        full_path = os.path.join(UPLOAD_DIR, filename)
+        with open(full_path, "wb") as f:
+            content = await file.read()
+            f.write(content)
+        file_path = f"uploads/{filename}"
+
+    # Parse date
+    parsed_date = None
+    if record_date:
+        try:
+            parsed_date = date.fromisoformat(record_date)
+        except ValueError:
+            pass
+
+    record = Record(
+        user_id=patient_id,
+        name=name,
+        date=parsed_date,
+        type=type,
+        doctor=doctor_name,
+        status="Shared",
+        file_path=file_path,
+    )
+    db.add(record)
+    await db.commit()
+    await db.refresh(record)
+    return record
+
