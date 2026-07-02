@@ -197,14 +197,20 @@
                             &nbsp;•&nbsp; 💼 ${doc.experience_years} yrs &nbsp;•&nbsp; 💰 ₹${doc.fee}
                         </p>
                         <div class="doctor-actions">
-                            <button class="btn-book" onclick="event.stopPropagation(); openBooking('${doc.name}', '${doc.specialty}', '${doc.location}', '${doc.phone}', ${doc.fee})">
-                                Book Appointment
-                            </button>
+                            ${doc.available
+                                ? `<button class="btn-book" onclick="event.stopPropagation(); openBooking('${doc.name}', '${doc.specialty}', '${doc.location}', '${doc.phone}', ${doc.fee}, true)">
+                                       Book Appointment
+                                   </button>`
+                                : `<button class="btn-book" disabled style="opacity:0.45;cursor:not-allowed;background:#94a3b8;" title="Doctor is currently unavailable">
+                                       Unavailable
+                                   </button>`
+                            }
                             <a href="tel:${doc.phone}" class="btn-call" onclick="event.stopPropagation()">📞</a>
                         </div>
                     </div>
                 </div>
             `).join("");
+
 
             // Place markers on map
             docs.forEach(doc => {
@@ -272,7 +278,11 @@
         // ── Booking Modal ──────────────────────────────────────
         let _bookingDoctor = {};
 
-        function openBooking(name, specialty, hospital, phone, fee) {
+        function openBooking(name, specialty, hospital, phone, fee, available) {
+            if (!available) {
+                alert('This doctor is currently unavailable. Please choose an available doctor.');
+                return;
+            }
             _bookingDoctor = { name, specialty, hospital, phone, fee };
             document.getElementById("modal-doctor-name").textContent = name;
             document.getElementById("modal-specialty").textContent = specialty;

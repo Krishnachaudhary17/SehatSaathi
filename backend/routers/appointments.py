@@ -23,6 +23,8 @@ async def create_appointment(
 ):
     # Auto-resolve doctor_id: try to find a registered doctor matching the name
     resolved_doctor_id = body.doctor_id
+    matched_doctor = None
+
     if resolved_doctor_id is None:
         name_part = body.doctor_name.replace("Dr. ", "").strip()
         res = await db.execute(
@@ -34,9 +36,40 @@ async def create_appointment(
                 )
             )
         )
-        matched = res.scalar_one_or_none()
-        if matched:
-            resolved_doctor_id = matched.user_id
+        matched_doctor = res.scalar_one_or_none()
+        if matched_doctor:
+            resolved_doctor_id = matched_doctor.user_id
+    else:
+        # Fetch by doctor_id to check availability
+        res = await db.execute(
+            select(Doctor).where(Doctor.user_id == resolved_doctor_id)
+        )
+        matched_doctor = res.scalar_one_or_none()
+
+    # If we found the doctor in the DB, check availability
+    if matched_doctor is not None and not matched_doctor.available:
+        raise HTTPException(
+            status_code=409,
+            detail=f"{body.doctor_name} is currently unavailable. Please choose another doctor."
+        )
+
+    # Also look up by name even without user_id link (seeded doctors)
+    if matched_doctor is None:
+        name_part = body.doctor_name.replace("Dr. ", "").strip()
+        res = await db.execute(
+            select(Doctor).where(
+                or_(
+                    Doctor.name.ilike(f"%{body.doctor_name}%"),
+                    Doctor.name.ilike(f"%{name_part}%")
+                )
+            )
+        )
+        matched_doctor = res.scalar_one_or_none()
+        if matched_doctor is not None and not matched_doctor.available:
+            raise HTTPException(
+                status_code=409,
+                detail=f"{body.doctor_name} is currently unavailable. Please choose another doctor."
+            )
 
     appt = Appointment(
         user_id=current_user.id,
