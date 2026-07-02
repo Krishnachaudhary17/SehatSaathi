@@ -120,12 +120,13 @@
                         <!-- Controls -->
                         <div class="controls">
                             <select class="exercise-select" id="exercise-select">
+                                <option value="shoulder_raise">💪 Shoulder Raise (Seated — Demo)</option>
+                                <option value="sitting_posture">Sitting Posture Assessment</option>
                                 <option value="straight_leg_raise">Straight Leg Raise</option>
                                 <option value="heel_slide">Heel Slide</option>
                                 <option value="terminal_knee_extension">Terminal Knee Extension</option>
                                 <option value="wall_slide">Wall Slide (Mini Squat)</option>
                                 <option value="clamshell">Clamshell</option>
-                                <option value="sitting_posture">Sitting Posture Assessment</option>
                             </select>
                             <button class="btn btn-primary" id="start-btn" onclick="startSession()">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -453,6 +454,17 @@
             secondary: { name: 'Knee Angle', a: LM.LEFT_HIP, b: LM.LEFT_KNEE, c: LM.LEFT_ANKLE },
             repThreshold: null,  // no reps for posture
             goodRange: [85, 100],
+        },
+        // ── SHOULDER RAISE (seated, upper-body only — ideal for desk demo) ──
+        // Raise both arms from resting position up to shoulder height and back.
+        // Primary: Left elbow angle (shoulder → elbow → wrist)
+        // Rep: arm lifts (elbow angle opens as arm raises from side)
+        shoulder_raise: {
+            primary:   { name: 'L Shoulder', a: LM.LEFT_ELBOW,  b: LM.LEFT_SHOULDER,  c: LM.LEFT_HIP },
+            secondary: { name: 'R Shoulder', a: LM.RIGHT_ELBOW, b: LM.RIGHT_SHOULDER, c: LM.RIGHT_HIP },
+            // repThreshold: arm DOWN = angle ~20–40°, arm UP (at shoulder height) = ~85–100°
+            repThreshold: { down: 50, up: 80 },
+            goodRange: [75, 105],  // target: arms level with shoulders
         },
     };
 
