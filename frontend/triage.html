@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -187,7 +187,7 @@
                 micBtn.classList.remove('recording'); 
                 micBtn.innerHTML = '🎤 Voice Input'; 
             };
-            rec.onerror  = () => rec.onend();
+
 
             rec.onresult = (e) => {
                 let final = '';
@@ -195,6 +195,18 @@
                     if (e.results[i].isFinal) final += e.results[i][0].transcript;
                 }
                 if (final) textarea.value += (textarea.value ? ' ' : '') + final;
+            };
+            rec.onerror = (e) => {
+                isRecording = false;
+                micBtn.classList.remove('recording');
+                micBtn.innerHTML = '🎤 Voice Input';
+                if (e.error === 'not-allowed') {
+                    alert('Microphone access denied. Please allow mic access in your browser settings.');
+                } else if (e.error === 'no-speech') {
+                    // silent — just reset
+                } else {
+                    console.warn('Speech recognition error:', e.error);
+                }
             };
         } else {
             micBtn.style.display = 'none';
@@ -308,60 +320,6 @@
                 analyzeBtn.textContent = 'Analyze Symptoms →';
                 textarea.disabled    = false;
             }
-        });
-
-        // ── Voice Input (Web Speech API) ─────────────────────────
-        let recognition = null;
-        let isRecording = false;
-
-        document.querySelector('.btn-voice').addEventListener('click', () => {
-            const micBtn = document.querySelector('.btn-voice');
-            const input = document.getElementById('symptoms-input');
-
-            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                alert('Voice input is not supported in your browser.');
-                return;
-            }
-
-            if (isRecording) {
-                recognition.stop();
-                return;
-            }
-
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRecognition();
-            recognition.lang = localStorage.getItem('sehat_lang') === 'hi' ? 'hi-IN' : 'en-IN';
-            recognition.interimResults = true;
-            recognition.maxAlternatives = 1;
-
-            recognition.onstart = () => {
-                isRecording = true;
-                micBtn.classList.add('recording');
-                micBtn.innerHTML = '⏹️ Recording...';
-            };
-
-            recognition.onresult = (event) => {
-                let transcript = '';
-                for (let i = 0; i < event.results.length; i++) {
-                    transcript += event.results[i][0].transcript;
-                }
-                input.value = transcript;
-            };
-
-            recognition.onend = () => {
-                isRecording = false;
-                micBtn.classList.remove('recording');
-                micBtn.innerHTML = '🎙️ Voice Input';
-            };
-
-            recognition.onerror = (event) => {
-                isRecording = false;
-                micBtn.classList.remove('recording');
-                micBtn.innerHTML = '🎙️ Voice Input';
-                if (event.error !== 'aborted') console.error('Speech error:', event.error);
-            };
-
-            recognition.start();
         });
     </script>
 <script src="auth-sidebar.js"></script>
