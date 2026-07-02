@@ -7,6 +7,10 @@
     <meta name="description" content="AI-powered physiotherapy rehab monitor with real-time exercise form feedback via Gemini Vision.">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="rehab.css">
+    <!-- MediaPipe Pose -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -212,6 +216,40 @@
                     <span id="voice-status">Voice feedback ready</span>
                 </div>
 
+                <!-- Live Angles Panel -->
+                <div class="p-card" id="angles-panel" style="margin-bottom:12px;">
+                    <div class="p-card-header">
+                        <span class="p-card-title">📐 Live Joint Angles</span>
+                        <span id="tracking-badge" style="font-size:.7rem;padding:2px 8px;border-radius:99px;background:var(--red-dim);color:var(--red);border:1px solid rgba(255,75,87,.3);">No Pose</span>
+                    </div>
+                    <div id="angles-body" style="padding:10px 14px;display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:.78rem;">
+                        <div class="angle-item" id="angle-l-shoulder" style="display:flex;justify-content:space-between;padding:5px 8px;background:var(--bg-card-2);border-radius:6px;border:1px solid var(--border);">
+                            <span style="color:var(--text-secondary);">L Shoulder</span><span style="font-family:var(--font-mono);color:var(--text-primary);">—</span>
+                        </div>
+                        <div class="angle-item" id="angle-r-shoulder" style="display:flex;justify-content:space-between;padding:5px 8px;background:var(--bg-card-2);border-radius:6px;border:1px solid var(--border);">
+                            <span style="color:var(--text-secondary);">R Shoulder</span><span style="font-family:var(--font-mono);color:var(--text-primary);">—</span>
+                        </div>
+                        <div class="angle-item" id="angle-l-elbow" style="display:flex;justify-content:space-between;padding:5px 8px;background:var(--bg-card-2);border-radius:6px;border:1px solid var(--border);">
+                            <span style="color:var(--text-secondary);">L Elbow</span><span style="font-family:var(--font-mono);color:var(--text-primary);">—</span>
+                        </div>
+                        <div class="angle-item" id="angle-r-elbow" style="display:flex;justify-content:space-between;padding:5px 8px;background:var(--bg-card-2);border-radius:6px;border:1px solid var(--border);">
+                            <span style="color:var(--text-secondary);">R Elbow</span><span style="font-family:var(--font-mono);color:var(--text-primary);">—</span>
+                        </div>
+                        <div class="angle-item" id="angle-l-hip" style="display:flex;justify-content:space-between;padding:5px 8px;background:var(--bg-card-2);border-radius:6px;border:1px solid var(--border);">
+                            <span style="color:var(--text-secondary);">L Hip</span><span style="font-family:var(--font-mono);color:var(--text-primary);">—</span>
+                        </div>
+                        <div class="angle-item" id="angle-r-hip" style="display:flex;justify-content:space-between;padding:5px 8px;background:var(--bg-card-2);border-radius:6px;border:1px solid var(--border);">
+                            <span style="color:var(--text-secondary);">R Hip</span><span style="font-family:var(--font-mono);color:var(--text-primary);">—</span>
+                        </div>
+                        <div class="angle-item" id="angle-l-knee" style="display:flex;justify-content:space-between;padding:5px 8px;background:var(--bg-card-2);border-radius:6px;border:1px solid var(--border);">
+                            <span style="color:var(--text-secondary);">L Knee</span><span style="font-family:var(--font-mono);color:var(--text-primary);">—</span>
+                        </div>
+                        <div class="angle-item" id="angle-r-knee" style="display:flex;justify-content:space-between;padding:5px 8px;background:var(--bg-card-2);border-radius:6px;border:1px solid var(--border);">
+                            <span style="color:var(--text-secondary);">R Knee</span><span style="font-family:var(--font-mono);color:var(--text-primary);">—</span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Posture zone panel -->
                 <div class="posture-panel" id="posture-panel">
                     <div class="p-card-header">
@@ -326,37 +364,366 @@
     <script src="auth-sidebar.js"></script>
 
     <script>
-    // ---------------------------------------------------------------
-    // State
-    // ---------------------------------------------------------------
+    // =================================================================
+    // STATE
+    // =================================================================
     let stream        = null;
-    let analyzeTimer  = null;
+    let mpCamera      = null;   // MediaPipe camera instance
+    let mpPose        = null;   // MediaPipe Pose instance
     let timerInterval = null;
     let sessionStart  = null;
     let analysisCount = 0;
     let repCount      = 0;
     let scores        = [];
-    let analyzeMs     = 4000;
+    let analyzeMs     = 10000;  // Gemini AI coach interval (10s)
     let isMuted       = false;
     let isProcessing  = false;
+    let sessionActive = false;
     const backendUrl  = '/api/rehab';
     let synth         = window.speechSynthesis;
+    let lastLandmarks = null;
+    let geminiTimer   = null;
 
-    // ---------------------------------------------------------------
-    // Interval buttons
-    // ---------------------------------------------------------------
+    // Rep counting state machine
+    let repState      = 'idle'; // idle -> down -> up (= 1 rep)
+    let prevAngle     = null;
+
+    // =================================================================
+    // MEDIAPIPE LANDMARK INDICES (33 points)
+    // =================================================================
+    const LM = {
+        NOSE: 0,
+        LEFT_SHOULDER: 11, RIGHT_SHOULDER: 12,
+        LEFT_ELBOW: 13, RIGHT_ELBOW: 14,
+        LEFT_WRIST: 15, RIGHT_WRIST: 16,
+        LEFT_HIP: 23, RIGHT_HIP: 24,
+        LEFT_KNEE: 25, RIGHT_KNEE: 26,
+        LEFT_ANKLE: 27, RIGHT_ANKLE: 28,
+        LEFT_HEEL: 29, RIGHT_HEEL: 30,
+    };
+
+    // Skeleton connections for drawing
+    const SKELETON_CONNECTIONS = [
+        [LM.LEFT_SHOULDER, LM.RIGHT_SHOULDER],
+        [LM.LEFT_SHOULDER, LM.LEFT_ELBOW], [LM.LEFT_ELBOW, LM.LEFT_WRIST],
+        [LM.RIGHT_SHOULDER, LM.RIGHT_ELBOW], [LM.RIGHT_ELBOW, LM.RIGHT_WRIST],
+        [LM.LEFT_SHOULDER, LM.LEFT_HIP], [LM.RIGHT_SHOULDER, LM.RIGHT_HIP],
+        [LM.LEFT_HIP, LM.RIGHT_HIP],
+        [LM.LEFT_HIP, LM.LEFT_KNEE], [LM.LEFT_KNEE, LM.LEFT_ANKLE],
+        [LM.RIGHT_HIP, LM.RIGHT_KNEE], [LM.RIGHT_KNEE, LM.RIGHT_ANKLE],
+        [LM.LEFT_ANKLE, LM.LEFT_HEEL], [LM.RIGHT_ANKLE, LM.RIGHT_HEEL],
+    ];
+
+    // =================================================================
+    // EXERCISE ANGLE CONFIGURATIONS
+    // =================================================================
+    const EXERCISE_ANGLES = {
+        straight_leg_raise: {
+            primary: { name: 'Hip Angle', a: LM.LEFT_SHOULDER, b: LM.LEFT_HIP, c: LM.LEFT_KNEE },
+            secondary: { name: 'Knee Lock', a: LM.LEFT_HIP, b: LM.LEFT_KNEE, c: LM.LEFT_ANKLE },
+            repThreshold: { down: 150, up: 170 }, // hip angle drops below 150 = leg raised
+            goodRange: [130, 160],  // ideal hip angle during raise
+        },
+        heel_slide: {
+            primary: { name: 'Knee Bend', a: LM.LEFT_HIP, b: LM.LEFT_KNEE, c: LM.LEFT_ANKLE },
+            secondary: { name: 'Hip Angle', a: LM.LEFT_SHOULDER, b: LM.LEFT_HIP, c: LM.LEFT_KNEE },
+            repThreshold: { down: 100, up: 150 },
+            goodRange: [80, 110],
+        },
+        terminal_knee_extension: {
+            primary: { name: 'Knee Angle', a: LM.LEFT_HIP, b: LM.LEFT_KNEE, c: LM.LEFT_ANKLE },
+            secondary: { name: 'Hip Tilt', a: LM.LEFT_SHOULDER, b: LM.LEFT_HIP, c: LM.LEFT_KNEE },
+            repThreshold: { down: 150, up: 170 },
+            goodRange: [165, 180],
+        },
+        wall_slide: {
+            primary: { name: 'Knee Angle', a: LM.LEFT_HIP, b: LM.LEFT_KNEE, c: LM.LEFT_ANKLE },
+            secondary: { name: 'Hip Angle', a: LM.LEFT_SHOULDER, b: LM.LEFT_HIP, c: LM.LEFT_KNEE },
+            repThreshold: { down: 120, up: 160 },
+            goodRange: [110, 140],
+        },
+        clamshell: {
+            primary: { name: 'Knee Angle', a: LM.LEFT_HIP, b: LM.LEFT_KNEE, c: LM.LEFT_ANKLE },
+            secondary: { name: 'Hip Rotation', a: LM.LEFT_SHOULDER, b: LM.LEFT_HIP, c: LM.LEFT_KNEE },
+            repThreshold: { down: 100, up: 140 },
+            goodRange: [90, 130],
+        },
+        sitting_posture: {
+            primary: { name: 'Spine Angle', a: LM.LEFT_SHOULDER, b: LM.LEFT_HIP, c: LM.LEFT_KNEE },
+            secondary: { name: 'Knee Angle', a: LM.LEFT_HIP, b: LM.LEFT_KNEE, c: LM.LEFT_ANKLE },
+            repThreshold: null,  // no reps for posture
+            goodRange: [85, 100],
+        },
+    };
+
+    // =================================================================
+    // MATH: Calculate angle between 3 points (in degrees)
+    // =================================================================
+    function calcAngle(a, b, c) {
+        const radians = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
+        let angle = Math.abs(radians * 180 / Math.PI);
+        if (angle > 180) angle = 360 - angle;
+        return Math.round(angle);
+    }
+
+    function getLandmark(landmarks, idx) {
+        const lm = landmarks[idx];
+        return { x: lm.x, y: lm.y, z: lm.z, visibility: lm.visibility };
+    }
+
+    // =================================================================
+    // MEDIAPIPE INIT
+    // =================================================================
+    function initMediaPipe() {
+        mpPose = new Pose({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`
+        });
+        mpPose.setOptions({
+            modelComplexity: 1,
+            smoothLandmarks: true,
+            enableSegmentation: false,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5,
+        });
+        mpPose.onResults(onPoseResults);
+    }
+
+    // =================================================================
+    // POSE RESULTS CALLBACK (runs every frame)
+    // =================================================================
+    function onPoseResults(results) {
+        if (!sessionActive) return;
+
+        const canvas = document.getElementById('canvas-overlay');
+        const video  = document.getElementById('webcam');
+        canvas.width  = video.videoWidth  || 640;
+        canvas.height = video.videoHeight || 480;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (!results.poseLandmarks) {
+            updateTrackingBadge(false);
+            return;
+        }
+
+        updateTrackingBadge(true);
+        lastLandmarks = results.poseLandmarks;
+        const lms = results.poseLandmarks;
+        const w = canvas.width, h = canvas.height;
+
+        // --- Calculate all joint angles ---
+        const angles = calculateAllAngles(lms);
+        updateAnglePanel(angles);
+
+        // --- Get exercise config ---
+        const exerciseId = document.getElementById('exercise-select').value;
+        const exConfig = EXERCISE_ANGLES[exerciseId];
+        const primaryAngle = exConfig ? calcAngle(
+            getLandmark(lms, exConfig.primary.a),
+            getLandmark(lms, exConfig.primary.b),
+            getLandmark(lms, exConfig.primary.c)
+        ) : null;
+
+        // --- Determine form quality ---
+        let formQuality = 'neutral'; // neutral, good, warn, bad
+        if (exConfig && primaryAngle !== null) {
+            const [lo, hi] = exConfig.goodRange;
+            if (primaryAngle >= lo && primaryAngle <= hi) formQuality = 'good';
+            else if (Math.abs(primaryAngle - lo) <= 15 || Math.abs(primaryAngle - hi) <= 15) formQuality = 'warn';
+            else formQuality = 'bad';
+        }
+
+        // --- Draw skeleton ---
+        const skeletonColor = formQuality === 'good' ? '#00e676' :
+                              formQuality === 'warn' ? '#ffc107' :
+                              formQuality === 'bad'  ? '#ff4757' : '#00c6ff';
+
+        // Draw connections
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = skeletonColor;
+        ctx.shadowColor = skeletonColor;
+        ctx.shadowBlur = 8;
+        SKELETON_CONNECTIONS.forEach(([i, j]) => {
+            const p1 = lms[i], p2 = lms[j];
+            if (p1.visibility > 0.5 && p2.visibility > 0.5) {
+                ctx.beginPath();
+                ctx.moveTo(p1.x * w, p1.y * h);
+                ctx.lineTo(p2.x * w, p2.y * h);
+                ctx.stroke();
+            }
+        });
+        ctx.shadowBlur = 0;
+
+        // Draw joint dots
+        const jointIndices = [LM.LEFT_SHOULDER, LM.RIGHT_SHOULDER, LM.LEFT_ELBOW, LM.RIGHT_ELBOW,
+            LM.LEFT_WRIST, LM.RIGHT_WRIST, LM.LEFT_HIP, LM.RIGHT_HIP,
+            LM.LEFT_KNEE, LM.RIGHT_KNEE, LM.LEFT_ANKLE, LM.RIGHT_ANKLE];
+        jointIndices.forEach(idx => {
+            const pt = lms[idx];
+            if (pt.visibility > 0.5) {
+                ctx.beginPath();
+                ctx.arc(pt.x * w, pt.y * h, 5, 0, 2 * Math.PI);
+                ctx.fillStyle = skeletonColor;
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+        });
+
+        // --- Draw angle labels on key joints ---
+        if (exConfig) {
+            drawAngleLabel(ctx, lms, exConfig.primary, primaryAngle, w, h, skeletonColor);
+            if (exConfig.secondary) {
+                const secAngle = calcAngle(
+                    getLandmark(lms, exConfig.secondary.a),
+                    getLandmark(lms, exConfig.secondary.b),
+                    getLandmark(lms, exConfig.secondary.c)
+                );
+                drawAngleLabel(ctx, lms, exConfig.secondary, secAngle, w, h, 'rgba(0,198,255,0.9)');
+            }
+        }
+
+        // --- Rep counting state machine ---
+        if (exConfig && exConfig.repThreshold && primaryAngle !== null) {
+            countRep(primaryAngle, exConfig.repThreshold);
+        }
+
+        // --- Update form quality score ring (real-time) ---
+        if (primaryAngle !== null && exConfig) {
+            const [lo, hi] = exConfig.goodRange;
+            const mid = (lo + hi) / 2;
+            const maxDev = 90; // max deviation from ideal
+            const deviation = Math.min(Math.abs(primaryAngle - mid), maxDev);
+            const liveScore = Math.max(0, Math.round(100 - (deviation / maxDev) * 100));
+            updateScore(liveScore, formQuality === 'good' ? 'correct' : 'needs_correction');
+        }
+    }
+
+    // =================================================================
+    // ANGLE LABEL DRAWING
+    // =================================================================
+    function drawAngleLabel(ctx, lms, config, angle, w, h, color) {
+        const joint = lms[config.b];
+        if (joint.visibility < 0.5) return;
+        const x = joint.x * w;
+        const y = joint.y * h;
+
+        // Background pill
+        const text = `${angle}°`;
+        ctx.font = 'bold 14px "JetBrains Mono", monospace';
+        const metrics = ctx.measureText(text);
+        const pw = metrics.width + 14;
+        const ph = 22;
+        const px = x + 12;
+        const py = y - 11;
+
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.beginPath();
+        ctx.roundRect(px, py, pw, ph, 6);
+        ctx.fill();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = color;
+        ctx.fillText(text, px + 7, py + 16);
+
+        // Small label below
+        ctx.font = '9px Inter, sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.fillText(config.name, px + 2, py + ph + 11);
+    }
+
+    // =================================================================
+    // CALCULATE ALL ANGLES (for the sidebar panel)
+    // =================================================================
+    function calculateAllAngles(lms) {
+        return {
+            lShoulder: calcAngle(getLandmark(lms, LM.LEFT_HIP), getLandmark(lms, LM.LEFT_SHOULDER), getLandmark(lms, LM.LEFT_ELBOW)),
+            rShoulder: calcAngle(getLandmark(lms, LM.RIGHT_HIP), getLandmark(lms, LM.RIGHT_SHOULDER), getLandmark(lms, LM.RIGHT_ELBOW)),
+            lElbow: calcAngle(getLandmark(lms, LM.LEFT_SHOULDER), getLandmark(lms, LM.LEFT_ELBOW), getLandmark(lms, LM.LEFT_WRIST)),
+            rElbow: calcAngle(getLandmark(lms, LM.RIGHT_SHOULDER), getLandmark(lms, LM.RIGHT_ELBOW), getLandmark(lms, LM.RIGHT_WRIST)),
+            lHip: calcAngle(getLandmark(lms, LM.LEFT_SHOULDER), getLandmark(lms, LM.LEFT_HIP), getLandmark(lms, LM.LEFT_KNEE)),
+            rHip: calcAngle(getLandmark(lms, LM.RIGHT_SHOULDER), getLandmark(lms, LM.RIGHT_HIP), getLandmark(lms, LM.RIGHT_KNEE)),
+            lKnee: calcAngle(getLandmark(lms, LM.LEFT_HIP), getLandmark(lms, LM.LEFT_KNEE), getLandmark(lms, LM.LEFT_ANKLE)),
+            rKnee: calcAngle(getLandmark(lms, LM.RIGHT_HIP), getLandmark(lms, LM.RIGHT_KNEE), getLandmark(lms, LM.RIGHT_ANKLE)),
+        };
+    }
+
+    function updateAnglePanel(angles) {
+        const map = {
+            'angle-l-shoulder': angles.lShoulder,
+            'angle-r-shoulder': angles.rShoulder,
+            'angle-l-elbow': angles.lElbow,
+            'angle-r-elbow': angles.rElbow,
+            'angle-l-hip': angles.lHip,
+            'angle-r-hip': angles.rHip,
+            'angle-l-knee': angles.lKnee,
+            'angle-r-knee': angles.rKnee,
+        };
+        Object.entries(map).forEach(([id, val]) => {
+            const el = document.getElementById(id);
+            if (el) {
+                const span = el.querySelector('span:last-child');
+                if (span) {
+                    span.textContent = val + '°';
+                    // Color code
+                    span.style.color = val >= 160 || val <= 20 ? 'var(--amber)' : 'var(--green)';
+                }
+            }
+        });
+    }
+
+    function updateTrackingBadge(detected) {
+        const badge = document.getElementById('tracking-badge');
+        if (detected) {
+            badge.textContent = 'Tracking ✓';
+            badge.style.background = 'var(--green-dim)';
+            badge.style.color = 'var(--green)';
+            badge.style.borderColor = 'rgba(0,230,118,.3)';
+        } else {
+            badge.textContent = 'No Pose';
+            badge.style.background = 'var(--red-dim)';
+            badge.style.color = 'var(--red)';
+            badge.style.borderColor = 'rgba(255,75,87,.3)';
+        }
+    }
+
+    // =================================================================
+    // REP COUNTING STATE MACHINE
+    // =================================================================
+    function countRep(angle, threshold) {
+        if (repState === 'idle' || repState === 'up') {
+            if (angle < threshold.down) {
+                repState = 'down';
+            }
+        } else if (repState === 'down') {
+            if (angle > threshold.up) {
+                repState = 'up';
+                repCount++;
+                updateStats();
+                logEntry(`✅ Rep ${repCount} completed! (angle: ${angle}°)`, 'ok');
+                // Quick spoken rep count
+                if (repCount % 5 === 0) speak(`${repCount} reps completed. Keep it up!`);
+            }
+        }
+    }
+
+    // =================================================================
+    // INTERVAL BUTTONS (now control Gemini AI Coach interval)
+    // =================================================================
     document.querySelectorAll('.interval-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.interval-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             analyzeMs = parseInt(btn.dataset.ms);
-            if (analyzeTimer) resetAnalyzeTimer();
         });
     });
 
-    // ---------------------------------------------------------------
-    // Mute toggle
-    // ---------------------------------------------------------------
+    // =================================================================
+    // MUTE TOGGLE
+    // =================================================================
     document.getElementById('mute-btn').addEventListener('click', () => {
         isMuted = !isMuted;
         const btn = document.getElementById('mute-btn');
@@ -366,9 +733,9 @@
         if (isMuted && synth) synth.cancel();
     });
 
-    // ---------------------------------------------------------------
-    // Session start / stop
-    // ---------------------------------------------------------------
+    // =================================================================
+    // SESSION START / STOP
+    // =================================================================
     async function startSession() {
         try {
             stream = await navigator.mediaDevices.getUserMedia({
@@ -385,7 +752,7 @@
         await video.play();
 
         document.getElementById('video-placeholder').style.display = 'none';
-        setStatus('live', 'Session live');
+        setStatus('live', 'MediaPipe + AI Coach active');
         showBrackets(true);
         document.getElementById('start-btn').disabled = true;
         document.getElementById('stop-btn').disabled  = false;
@@ -393,21 +760,46 @@
 
         sessionStart  = Date.now();
         analysisCount = 0; repCount = 0; scores = [];
+        repState = 'idle'; prevAngle = null;
         updateStats();
+        sessionActive = true;
 
         timerInterval = setInterval(updateTimer, 1000);
-        scheduleAnalysis();
 
-        speak(`Starting ${getExerciseName()}. Get into position and begin your exercise.`);
+        // Start MediaPipe camera loop
+        if (!mpPose) initMediaPipe();
+        mpCamera = new Camera(video, {
+            onFrame: async () => {
+                if (mpPose && sessionActive) {
+                    await mpPose.send({ image: video });
+                }
+            },
+            width: 1280,
+            height: 720,
+        });
+        mpCamera.start();
+
+        // Start Gemini AI Coach timer
+        scheduleGeminiCoach();
+
+        speak(`Starting ${getExerciseName()}. MediaPipe tracking active. Get into position.`);
+        logEntry('🚀 MediaPipe Pose tracking started', 'ok');
     }
 
     function stopSession() {
+        sessionActive = false;
+        if (mpCamera) { mpCamera.stop(); mpCamera = null; }
         if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-        clearTimeout(analyzeTimer); analyzeTimer = null;
         clearInterval(timerInterval); timerInterval = null;
+        clearTimeout(geminiTimer); geminiTimer = null;
 
         const video = document.getElementById('webcam');
         video.srcObject = null;
+
+        // Clear the canvas overlay
+        const canvas = document.getElementById('canvas-overlay');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         document.getElementById('video-placeholder').style.display = 'flex';
         setStatus('', 'Camera off');
@@ -416,28 +808,25 @@
         document.getElementById('start-btn').disabled = false;
         document.getElementById('stop-btn').disabled  = true;
         document.getElementById('exercise-select').disabled = false;
+        updateTrackingBadge(false);
 
         speak('Session ended. Great work today!');
+        logEntry('⏹️ Session ended', 'ok');
     }
 
-    // ---------------------------------------------------------------
-    // Analysis loop
-    // ---------------------------------------------------------------
-    function scheduleAnalysis() {
-        analyzeTimer = setTimeout(async () => {
-            if (!stream) return;
-            await analyzeFrame();
-            scheduleAnalysis();
+    // =================================================================
+    // GEMINI AI COACH (periodic snapshot every N seconds)
+    // =================================================================
+    function scheduleGeminiCoach() {
+        geminiTimer = setTimeout(async () => {
+            if (!sessionActive) return;
+            await sendToGemini();
+            scheduleGeminiCoach();
         }, analyzeMs);
     }
 
-    function resetAnalyzeTimer() {
-        clearTimeout(analyzeTimer);
-        if (stream) scheduleAnalysis();
-    }
-
-    async function analyzeFrame() {
-        if (isProcessing) return;
+    async function sendToGemini() {
+        if (isProcessing || !sessionActive) return;
         isProcessing = true;
 
         const video   = document.getElementById('webcam');
@@ -472,11 +861,10 @@
             }
 
             const data = await resp.json();
-            handleFeedback(data);
+            handleGeminiFeedback(data);
         } catch (err) {
-            logEntry('Connection error: ' + err.message, 'bad');
-            setStatus('error', 'API error');
-            console.error('[PhysioAI]', err);
+            logEntry('🤖 AI Coach: ' + err.message, 'bad');
+            console.error('[GeminiCoach]', err);
         } finally {
             isProcessing = false;
             document.getElementById('processing-badge').classList.remove('show');
@@ -484,18 +872,12 @@
         }
     }
 
-    // ---------------------------------------------------------------
-    // Handle feedback from API
-    // ---------------------------------------------------------------
-    function handleFeedback(data) {
+    function handleGeminiFeedback(data) {
         analysisCount++;
         scores.push(data.score);
-        if (data.status === 'correct') repCount++;
-
         updateStats();
-        updateScore(data.score, data.status);
         updateFeedbackBubble(data);
-        logEntry(data.primary_feedback, data.status === 'correct' ? 'ok' : 'bad');
+        logEntry('🤖 ' + data.primary_feedback, data.status === 'correct' ? 'ok' : 'bad');
         speak(data.primary_feedback);
 
         if (data.zone_scores) {
@@ -503,9 +885,9 @@
         }
     }
 
-    // ---------------------------------------------------------------
-    // UI updates
-    // ---------------------------------------------------------------
+    // =================================================================
+    // UI UPDATES
+    // =================================================================
     function updateScore(score, status) {
         const circumference = 2 * Math.PI * 52;
         const offset = circumference - (score / 100) * circumference;
@@ -577,9 +959,9 @@
         document.getElementById('stat-time').textContent = `${m}:${s}`;
     }
 
-    // ---------------------------------------------------------------
-    // Session log
-    // ---------------------------------------------------------------
+    // =================================================================
+    // SESSION LOG
+    // =================================================================
     function logEntry(text, type) {
         const body = document.getElementById('log-body');
         const placeholder = body.querySelector('div[style]');
@@ -602,9 +984,9 @@
             </div>`;
     }
 
-    // ---------------------------------------------------------------
-    // Voice TTS
-    // ---------------------------------------------------------------
+    // =================================================================
+    // VOICE TTS
+    // =================================================================
     function speak(text) {
         if (isMuted || !synth || !text) return;
         synth.cancel();
@@ -622,9 +1004,9 @@
     }
     if (synth.onvoiceschanged !== undefined) { synth.onvoiceschanged = () => {}; }
 
-    // ---------------------------------------------------------------
-    // Status / helpers
-    // ---------------------------------------------------------------
+    // =================================================================
+    // STATUS / HELPERS
+    // =================================================================
     function setStatus(type, text) {
         document.getElementById('status-dot').className = 'status-dot ' + type;
         document.getElementById('status-text').textContent = text;
@@ -641,9 +1023,9 @@
         return sel.options[sel.selectedIndex].text;
     }
 
-    // ---------------------------------------------------------------
-    // Load exercise list from backend (graceful fallback)
-    // ---------------------------------------------------------------
+    // =================================================================
+    // LOAD EXERCISES FROM BACKEND
+    // =================================================================
     async function loadExercises() {
         try {
             const resp = await fetch(`${backendUrl}/exercises`);
@@ -663,9 +1045,9 @@
     }
     loadExercises();
 
-    // ---------------------------------------------------------------
-    // Posture zone panel
-    // ---------------------------------------------------------------
+    // =================================================================
+    // POSTURE ZONE PANEL
+    // =================================================================
     const POSTURE_EXERCISE_ID = 'sitting_posture';
     const ZONE_IDS = ['head_neck', 'shoulders', 'thoracic', 'lumbar', 'hips_pelvis', 'knees_feet'];
 
@@ -689,10 +1071,7 @@
             if (noteEl) noteEl.textContent = 'Awaiting analysis';
         });
         const badge = document.getElementById('posture-overall-badge');
-        if (badge) {
-            badge.textContent = 'Waiting';
-            badge.style.cssText = '';
-        }
+        if (badge) { badge.textContent = 'Waiting'; badge.style.cssText = ''; }
         const tip = document.getElementById('posture-tip');
         if (tip) tip.classList.remove('show');
     }
