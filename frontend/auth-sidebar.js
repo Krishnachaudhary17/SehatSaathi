@@ -117,6 +117,42 @@ function loadGoogleTranslate() {
         controls.appendChild(langBtn);
         sidebar.insertBefore(controls, profileEl);
 
+        // ── Mobile hamburger button ─────────────────────────────────
+        const hamburger = document.createElement('button');
+        hamburger.id = 'sidebar-hamburger';
+        hamburger.setAttribute('aria-label', 'Toggle menu');
+        hamburger.innerHTML = `
+            <span></span>
+            <span></span>
+            <span></span>
+        `;
+        hamburger.onclick = function () {
+            document.body.classList.toggle('sidebar-open');
+        };
+        document.body.prepend(hamburger);
+
+        // Close sidebar when a nav link is clicked on mobile
+        document.querySelectorAll('.nav-item').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    document.body.classList.remove('sidebar-open');
+                }
+            });
+        });
+
+        // Close sidebar when tapping the overlay (outside sidebar)
+        document.addEventListener('click', (e) => {
+            if (
+                window.innerWidth <= 768 &&
+                document.body.classList.contains('sidebar-open') &&
+                !sidebar.contains(e.target) &&
+                e.target !== hamburger &&
+                !hamburger.contains(e.target)
+            ) {
+                document.body.classList.remove('sidebar-open');
+            }
+        });
+
         // ── User profile ────────────────────────────────────────────
         if (token) {
             const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
