@@ -2,7 +2,9 @@
     --primary-green: #007f66;
     --primary-hover: #006652;
     --bg-light: #f8fafc;
+    --bg-dark:  #0f172a;
     --text-dark: #1e293b;
+    --text-light: #f1f5f9;
     --text-muted: #64748b;
     --danger-red: #ff4d4f;
 }
@@ -20,6 +22,12 @@ body {
     height: 100vh;
     background-color: var(--bg-light);
     color: var(--text-dark);
+}
+
+/* --- DARK MODE BODY --- */
+body.dark {
+    background-color: var(--bg-dark);
+    color: var(--text-light);
 }
 
 /* --- SIDEBAR --- */
