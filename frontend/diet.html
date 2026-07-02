@@ -247,14 +247,15 @@ function parseAIResponse(text) {
                 const mm = block.match(mr);
                 return mm ? mm[1].trim() : '';
             };
-            const calsM = block.match(/\[?(\d{3,4})\]?\s*kcal/i);
+            const allCals = Array.from(block.matchAll(/\[?(\d{3,4})\]?\s*kcal/gi));
+            const totalCals = allCals.length > 0 ? allCals[allCals.length - 1][1] : '~1800';
             days.push({
                 day,
                 breakfast: get('Breakfast'),
                 lunch: get('Lunch'),
                 dinner: get('Dinner'),
                 snack: get('Snack'),
-                calories: calsM ? calsM[1] : '~1800'
+                calories: totalCals
             });
         }
     });
