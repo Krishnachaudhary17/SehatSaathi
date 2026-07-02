@@ -9,7 +9,19 @@
 (function applyThemeEarly() {
     if (localStorage.getItem('sehat_theme') === 'dark') {
         document.documentElement.classList.add('dark');
-        document.body && document.body.classList.add('dark');
+        // body may not exist yet — set it now if available, or watch for it
+        if (document.body) {
+            document.body.classList.add('dark');
+        } else {
+            // Watch for body to appear (runs before DOMContentLoaded)
+            const observer = new MutationObserver(() => {
+                if (document.body) {
+                    document.body.classList.add('dark');
+                    observer.disconnect();
+                }
+            });
+            observer.observe(document.documentElement, { childList: true });
+        }
     }
 })();
 
@@ -82,6 +94,7 @@ function loadGoogleTranslate() {
         darkBtn.innerHTML = isDark ? '☀️ Light' : '🌙 Dark';
         darkBtn.onclick = function () {
             const nowDark = document.body.classList.toggle('dark');
+            document.documentElement.classList.toggle('dark', nowDark);
             localStorage.setItem('sehat_theme', nowDark ? 'dark' : 'light');
             darkBtn.innerHTML = nowDark ? '☀️ Light' : '🌙 Dark';
         };

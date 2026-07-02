@@ -25,7 +25,8 @@ body {
 }
 
 /* --- DARK MODE BODY --- */
-body.dark {
+body.dark,
+html.dark body {
     background-color: var(--bg-dark);
     color: var(--text-light);
 }
